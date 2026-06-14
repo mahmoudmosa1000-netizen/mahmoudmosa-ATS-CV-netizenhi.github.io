@@ -65,6 +65,46 @@
       <div class="progress-bar-track"><div id="progress-fill"></div></div>
     </div>
 
+    <!-- ATS Score Panel -->
+    <div id="ats-score-wrap">
+      <button class="ats-score-toggle" onclick="toggleATSPanel()" id="ats-toggle-btn">
+        <span class="ats-toggle-left">
+          <span class="ats-toggle-icon">&#127919;</span>
+          <span class="ats-toggle-label">ATS-Score</span>
+          <span id="ats-score-status" class="ats-status-badge">&#8211;</span>
+        </span>
+        <span class="ats-toggle-right">
+          <span id="ats-score-value" class="ats-score-num">&#8211;</span>
+          <span class="ats-toggle-arrow" id="ats-arrow">&#9660;</span>
+        </span>
+      </button>
+      <div id="ats-score-body" class="ats-score-body" style="display:none;">
+        <div class="ats-score-visual">
+          <svg class="ats-ring" viewBox="0 0 72 72" width="72" height="72">
+            <circle cx="36" cy="36" r="28" fill="none" stroke="#ebebeb" stroke-width="7"/>
+            <circle id="ats-ring-circle" cx="36" cy="36" r="28" fill="none"
+                    stroke="#c0392b" stroke-width="7"
+                    stroke-linecap="round"
+                    stroke-dasharray="0 175.93"
+                    transform="rotate(-90 36 36)"
+                    style="transition:stroke-dasharray 0.6s ease, stroke 0.4s;"/>
+            <text id="ats-score-ring-text" x="36" y="41"
+                  text-anchor="middle" font-size="17" font-weight="700"
+                  fill="#c0392b" font-family="inherit">0</text>
+          </svg>
+          <div class="ats-score-bar-wrap">
+            <div class="ats-score-bar-track">
+              <div id="ats-score-fill" class="ats-score-fill" style="width:0%"></div>
+            </div>
+            <div class="ats-score-bar-labels">
+              <span>0</span><span>50</span><span>100</span>
+            </div>
+          </div>
+        </div>
+        <div id="ats-score-hints" class="ats-hints"></div>
+      </div>
+    </div>
+
     <div class="editor-tabs">
       <button class="etab active" onclick="switchTab('personal',this)"   data-i18n="tabPerson">Person</button>
       <button class="etab"        onclick="switchTab('experience',this)" data-i18n="tabExperience">Erfahrung</button>
@@ -74,6 +114,7 @@
       <button class="etab"        onclick="switchTab('design',this)"     data-i18n="tabDesign">Design</button>
       <button class="etab"        onclick="switchTab('page2',this)"      data-i18n="tabPage2">+ S.2</button>
       <button class="etab etab-ai" onclick="switchTab('ai',this)"         title="KI-Textassistent">✨ KI</button>
+      <button class="etab etab-jd"  onclick="switchTab('job',this)" title="Stellenanzeige analysieren">🔍 Job</button>
     </div>
 
     <!-- ── PERSON ── -->
@@ -253,6 +294,28 @@
 
     <!-- ── SKILLS ── -->
     <div id="panel-skills" class="epanel">
+      <!-- Skill-Anzeige Toggle -->
+      <div class="skill-display-toggle-wrap">
+        <span class="sdtw-label">Darstellung auf dem CV:</span>
+        <div class="sdtw-options">
+          <label class="sdtw-opt">
+            <input type="radio" name="skillDisplay" value="bar"
+              checked onchange="document.getElementById('skill-display-mode').value='bar'; render();">
+            <span class="sdtw-icon">▬▬</span> Balken
+          </label>
+          <label class="sdtw-opt sdtw-ats">
+            <input type="radio" name="skillDisplay" value="text"
+              onchange="document.getElementById('skill-display-mode').value='text'; render();">
+            <span class="sdtw-icon">Aa</span> Text-Level
+            <span class="sdtw-badge">ATS ✓</span>
+          </label>
+        </div>
+        <input type="hidden" id="skill-display-mode" value="bar">
+        <div class="sdtw-hint">
+          <strong>ATS-Tipp:</strong> Balken werden von Bewerbersystemen nicht gelesen.
+          Text-Level (Experte / Fortgeschritten) ist ATS-kompatibel.
+        </div>
+      </div>
       <div class="section-divider" data-i18n="sectionTechSkills">Technische Skills</div>
       <div id="skill-list"></div>
       <button class="btn-add" onclick="addSkill()" data-i18n="btnAddSkill">+ Skill hinzufügen</button>
@@ -638,6 +701,78 @@
       </div>
     </div>
 
+
+    <!-- ── JOB DESCRIPTION ANALYZER ── -->
+    <div id="panel-job" class="epanel" style="display:none;">
+      <div class="section-divider">&#128269; Stellenanzeige analysieren</div>
+
+      <div class="jd-intro-box">
+        <div style="font-size:13px;font-weight:700;color:var(--g-dark);margin-bottom:5px;">
+          Dein CV vs. die Stelle
+        </div>
+        <div style="font-size:11px;color:var(--ink-soft);line-height:1.6;">
+          F&#252;ge die Stellenanzeige ein. Wir extrahieren alle wichtigen Keywords und zeigen dir,
+          welche in deinem CV fehlen &#8212; mit 1-Klick-Hinzuf&#252;gen.
+        </div>
+      </div>
+
+      <!-- Match Score -->
+      <div id="jd-score-wrap" style="display:none;margin:12px 0;">
+        <div class="jd-score-header">
+          <span class="jd-score-label">Match-Score</span>
+          <span id="jd-match-score" class="jd-score-value">0%</span>
+          <span id="jd-match-label" class="jd-score-status">&#8211;</span>
+        </div>
+        <div class="jd-score-track">
+          <div id="jd-match-bar" class="jd-score-fill" style="width:0%"></div>
+        </div>
+        <div id="jd-score-info" style="font-size:10px;color:var(--ink-faint);text-align:right;margin-top:3px;"></div>
+      </div>
+
+      <!-- Eingabe -->
+      <div id="jd-input-wrap">
+        <div class="form-group" style="margin-top:10px;">
+          <label>Stellenanzeige einfügen</label>
+          <textarea id="jd-input" rows="8"
+            placeholder="Kopiere hier den vollst&#228;ndigen Text der Stellenanzeige hinein&#10;&#10;(Titel, Aufgaben, Anforderungen, Benefits...)"
+            oninput="document.getElementById('jd-score-wrap').style.display='none';"
+            style="font-size:12px;line-height:1.6;"></textarea>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button id="jd-analyze-btn" class="btn btn-primary"
+                  onclick="analyzeJobDescription();document.getElementById('jd-score-wrap').style.display='block';"
+                  style="flex:1;padding:11px;font-size:13px;border-radius:8px;">
+            &#128269; Jetzt analysieren
+          </button>
+          <button class="btn btn-ghost" onclick="resetJobAnalyzer()"
+                  style="padding:11px 14px;border-radius:8px;font-size:12px;"
+                  title="Zur&#252;cksetzen">
+            &#8635;
+          </button>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div id="jd-loading" style="display:none;text-align:center;padding:24px 0;">
+        <div class="ai-spinner"></div>
+        <div style="font-size:12px;color:var(--ink-faint);margin-top:10px;">
+          Keywords werden extrahiert&#8230;
+        </div>
+      </div>
+
+      <!-- Ergebnisse -->
+      <div id="jd-results-wrap" style="display:none;">
+        <div id="jd-results"></div>
+      </div>
+
+      <!-- Tipp -->
+      <div class="jd-tip-box" style="margin-top:14px;">
+        &#128161; <strong>ATS-Tipp:</strong> Je mehr Keywords aus der Stellenanzeige
+        in deinem Lebenslauf vorkommen, desto h&#246;her ist die Chance, den
+        automatischen Filter zu &#252;berstehen.
+      </div>
+    </div><!-- end panel-job -->
+
   </div><!-- end .editor -->
 
   <!-- ── KI-ASSISTENT PANEL ── -->
@@ -732,5 +867,7 @@
 <script src="i18n.js"></script>
 <script src="script.js"></script>
 <script src="ats-pdf.js"></script>
+<script src="ats-score.js"></script>
+<script src="job-analyzer.js"></script>
 </body>
 </html>
