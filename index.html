@@ -9,8 +9,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <!-- QR Code (qrcodejs) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <!-- pdf-lib: ATS-kompatibler Text-PDF-Export -->
-  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -259,11 +257,17 @@
 
       <div class="section-divider" data-i18n="sectionProfile">Profil &amp; Zusammenfassung</div>
       <div class="form-group">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-          <label style="margin-bottom:0;" data-i18n="labelSummary">Kurzprofil</label>
-          <span class="char-counter" id="summary-char-count">0 / 600</span>
+        <div class="ai-field-header" style="margin-bottom:4px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;width:100%;">
+            <label style="margin-bottom:0;" data-i18n="labelSummary">Kurzprofil</label>
+            <span class="char-counter" id="summary-char-count">0 / 600</span>
+          </div>
+          <div class="ai-inline-btns" style="margin-top:4px;">
+            <button type="button" class="ai-inline-btn" onclick="aiImproveSummary()" title="Kurzprofil mit KI verbessern">&#10024; KI verbessern</button>
+          </div>
         </div>
         <textarea id="f-summary" rows="5" placeholder="Beschreiben Sie sich in 3–5 Sätzen ..." data-i18n="placeholderSummary" data-i18n-attr="placeholder" oninput="renderDebounced();updateProgress();updateCharCount()"></textarea>
+        <div class="ai-inline-status" id="ai-status-summary" style="display:none;margin-top:5px;"></div>
       </div>
       <div class="form-group" style="background:#f0f4ef;border-radius:6px;padding:8px 10px;">
         <span style="font-size:11px;color:#5a7358;" data-i18n="websiteTip">💡 Tipp: Schreibe <strong>%%WEBSITE%%</strong> im Text.</span>

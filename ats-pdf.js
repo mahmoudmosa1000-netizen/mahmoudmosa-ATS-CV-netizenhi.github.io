@@ -14,10 +14,16 @@
 
 async function downloadATSPDF() {
 
-  // ── GUARD: pdf-lib geladen? ──────────────────────
+  // ── GUARD: pdf-lib lazy laden falls noch nicht vorhanden ──
   if (typeof PDFLib === 'undefined') {
-    showToast('❌ PDF-Bibliothek nicht geladen. Bitte Seite neu laden.');
-    return;
+    showToast('⏳ PDF-Bibliothek wird geladen…');
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js';
+      s.onload  = resolve;
+      s.onerror = () => reject(new Error('pdf-lib konnte nicht geladen werden'));
+      document.head.appendChild(s);
+    });
   }
 
   const d = collectData();
