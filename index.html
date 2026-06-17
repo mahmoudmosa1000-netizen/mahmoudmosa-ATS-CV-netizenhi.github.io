@@ -28,8 +28,8 @@
     <button class="btn btn-ghost"   onclick="triggerImport()"     title="JSON Resume importieren" data-i18n="btnImport">📥 Import</button>
     <button class="btn btn-ghost"   onclick="resetAll()"          data-i18n="btnReset">Zurücksetzen</button>
     <button class="btn btn-ghost"   onclick="saveData()"          data-i18n="btnSave">💾 Speichern</button>
-    <button class="btn btn-ghost"   onclick="downloadPDF()"       data-i18n="btnDownloadPDF">⬇ Design-PDF</button>
-    <button class="btn btn-ats"     onclick="downloadATSPDF()"    title="ATS-optimiertes Text-PDF — lesbar für alle Bewerbersysteme">🎯 ATS-PDF</button>
+    <button class="btn btn-ghost"   onclick="runHealthCheck('design')" data-i18n="btnDownloadPDF">⬇ Design-PDF</button>
+    <button class="btn btn-ats"     onclick="runHealthCheck('ats')" title="ATS-optimiertes Text-PDF — lesbar für alle Bewerbersysteme">🎯 ATS-PDF</button>
     <button class="btn btn-primary" onclick="exportPDF()"         data-i18n="btnPrint">🖨 Drucken</button>
   </div>
 </div>
@@ -49,8 +49,28 @@
   </div>
 </div>
 
+<!-- ── CV HEALTH CHECK MODAL ── -->
+<div class="modal-overlay" id="health-modal" role="dialog" aria-modal="true" aria-labelledby="health-modal-title" onclick="if(event.target===this)closeHealthModal()">
+  <div class="modal-box health-modal-box">
+    <button class="modal-close" onclick="closeHealthModal()" aria-label="Schließen">&times;</button>
+    <div class="modal-title" id="health-modal-title">&#129502; CV Health Check</div>
+    <div id="health-summary" class="health-summary"></div>
+    <div id="health-issues" class="health-issues"></div>
+    <div class="health-actions">
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeHealthModal()">&#9999; Jetzt beheben</button>
+      <button class="btn btn-primary" id="health-proceed-btn" style="flex:1;" onclick="proceedAfterHealthCheck()">Trotzdem herunterladen &rarr;</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── APP ── -->
 <div class="app">
+
+  <!-- Mobile View Toggle (nur < 900px sichtbar) -->
+  <div class="mobile-view-toggle" id="mobile-view-toggle">
+    <button class="mvt-btn active" id="mvt-edit" onclick="setMobileView('edit')">✏️ Bearbeiten</button>
+    <button class="mvt-btn" id="mvt-preview" onclick="setMobileView('preview')">👁 Vorschau</button>
+  </div>
 
   <!-- ════ EDITOR ════ -->
   <div class="editor">
@@ -873,5 +893,6 @@
 <script src="ats-pdf.js"></script>
 <script src="ats-score.js"></script>
 <script src="job-analyzer.js"></script>
+<script src="action-verbs.js"></script>
 </body>
 </html>

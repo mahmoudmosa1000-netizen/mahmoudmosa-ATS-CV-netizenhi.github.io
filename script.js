@@ -1052,7 +1052,7 @@ function addEntry(type,data={}){
         <div class="form-group dp-group"><label>${t('labelFrom')}</label>${makeDatePicker('exp-from-'+id, data.from||''  , {isTo:false})}</div>
         <div class="form-group dp-group"><label>${t('labelTo')}</label>${makeDatePicker('exp-to-'+id,   data.to||''    , {isTo:true})}</div>
       </div>
-      <div class="form-group"><div class="ai-field-header"><label>${t('labelDesc')}</label><div class="ai-inline-btns"><button type="button" class="ai-inline-btn" onclick="aiImproveField('exp-desc-${id}','exp','${id}','improve')" title="Text verbessern">✨ Verbessern</button><button type="button" class="ai-inline-btn ai-inline-btn-alt" onclick="aiImproveField('exp-desc-${id}','exp','${id}','bullets')" title="Bullet Points generieren">• Bullets</button></div></div><textarea id="exp-desc-${id}" placeholder="${t('placeholderDesc')}" oninput="render()">${esc(data.desc||'')}</textarea><div class="ai-inline-status" id="ai-status-exp-desc-${id}"></div></div>`;
+      <div class="form-group"><div class="ai-field-header"><label>${t('labelDesc')}</label><div class="ai-inline-btns"><button type="button" class="ai-inline-btn" onclick="aiImproveField('exp-desc-${id}','exp','${id}','improve')" title="Text verbessern">✨ Verbessern</button><button type="button" class="ai-inline-btn ai-inline-btn-alt" onclick="aiImproveField('exp-desc-${id}','exp','${id}','bullets')" title="Bullet Points generieren">• Bullets</button><button type="button" class="verb-trigger-btn" onclick="toggleVerbPicker('exp-desc-${id}', this)" title="Starke Aktionsverben durchsuchen">📚 Verben</button></div></div><textarea id="exp-desc-${id}" placeholder="${t('placeholderDesc')}" oninput="render()">${esc(data.desc||'')}</textarea><div class="ai-inline-status" id="ai-status-exp-desc-${id}"></div></div>`;
     state.exp.push(id);
   } else {
     card.innerHTML=`
@@ -1982,4 +1982,232 @@ function updatePhotoDesignPreview() {
       box-shadow:0 4px 18px rgba(0,0,0,0.20);
       transition:all 0.2s;">${initials}</div>`;
   }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SCHRITT 7 — MOBILE RESPONSIVE LAYOUT
+// ═══════════════════════════════════════════════════════════════
+
+const MOBILE_BREAKPOINT = 900;
+let _mobileView = 'edit'; // 'edit' | 'preview'
+
+function isMobileViewport() {
+  return window.innerWidth <= MOBILE_BREAKPOINT;
+}
+
+// ── Editor/Vorschau umschalten (nur Mobile) ──────────────────
+function setMobileView(view) {
+  _mobileView = view;
+  const editorEl  = document.querySelector('.editor');
+  const previewEl = document.getElementById('preview-area');
+  const btnEdit   = document.getElementById('mvt-edit');
+  const btnPrev   = document.getElementById('mvt-preview');
+
+  if (!editorEl || !previewEl) return;
+
+  if (view === 'preview') {
+    editorEl.classList.remove('mobile-active');
+    previewEl.classList.add('mobile-active');
+    if (btnEdit) btnEdit.classList.remove('active');
+    if (btnPrev) btnPrev.classList.add('active');
+    // Vorschau neu skalieren beim Anzeigen
+    requestAnimationFrame(autoFitMobilePreview);
+  } else {
+    editorEl.classList.add('mobile-active');
+    previewEl.classList.remove('mobile-active');
+    if (btnEdit) btnEdit.classList.add('active');
+    if (btnPrev) btnPrev.classList.remove('active');
+  }
+}
+
+// ── CV automatisch auf Bildschirmbreite skalieren (Mobile) ───
+function autoFitMobilePreview() {
+  if (!isMobileViewport()) return;
+  const previewArea = document.getElementById('preview-area');
+  const paper        = document.getElementById('cv-paper');
+  const paper2        = document.getElementById('cv-paper-2');
+  if (!previewArea || !paper) return;
+
+  const availableWidth = previewArea.clientWidth - 24; // Padding berücksichtigen
+  const paperWidth     = 720; // Basisbreite aus CSS (.cv-paper)
+  const fitScale        = Math.max(0.32, Math.min(1, availableWidth / paperWidth));
+
+  paper.style.transform = `scale(${fitScale})`;
+  paper.style.marginBottom = `${(1 - fitScale) * -1050 + 24}px`;
+  if (paper2 && paper2.style.display !== 'none') {
+    paper2.style.transform = `scale(${fitScale})`;
+    paper2.style.marginBottom = `${(1 - fitScale) * -1050 + 24}px`;
+  }
+
+  // Zoom-Label synchronisieren (informativ)
+  const zl = document.getElementById('zoom-label');
+  if (zl) zl.textContent = Math.round(fitScale * 100) + '%';
+}
+
+// ── Bei Größenänderung neu skalieren ──────────────────────────
+let _mobileResizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(_mobileResizeTimer);
+  _mobileResizeTimer = setTimeout(() => {
+    if (isMobileViewport()) {
+      autoFitMobilePreview();
+    } else {
+      // Zurück zu Desktop: normale Zoom-Stufe wiederherstellen
+      const paper = document.getElementById('cv-paper');
+      const paper2 = document.getElementById('cv-paper-2');
+      if (paper)  { paper.style.transform  = `scale(${zoom})`; paper.style.marginBottom = ''; }
+      if (paper2) { paper2.style.transform = `scale(${zoom})`; paper2.style.marginBottom = ''; }
+      const editorEl  = document.querySelector('.editor');
+      const previewEl = document.getElementById('preview-area');
+      if (editorEl)  editorEl.classList.remove('mobile-active');
+      if (previewEl) previewEl.classList.remove('mobile-active');
+    }
+  }, 150);
+});
+
+// ── Initial-Setup bei Seitenstart ────────────────────────────
+function initMobileLayout() {
+  if (isMobileViewport()) {
+    setMobileView('edit'); // Start im Editor-Modus
+  }
+}
+setTimeout(initMobileLayout, 50);
+
+// ── Hook: nach jedem render() auch mobile Skalierung aktualisieren ──
+const _origRenderForMobile = render;
+render = function(...args) {
+  _origRenderForMobile.apply(this, args);
+  if (isMobileViewport() && _mobileView === 'preview') {
+    requestAnimationFrame(autoFitMobilePreview);
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════
+// SCHRITT 8 — CV HEALTH CHECK VOR DOWNLOAD
+// ═══════════════════════════════════════════════════════════════
+
+let _healthPendingAction = null; // 'design' | 'ats'
+
+// ── KRITISCHE PRÜFREGELN (Blocker, nicht nur Hinweise wie ATS-Score) ──
+function getHealthCheckIssues() {
+  const d = collectData();
+  const issues = [];
+
+  // ── SCHWERWIEGEND: ohne diese ist der CV im Grunde nutzlos ──
+  if (!d.name || d.name.trim().length < 2) {
+    issues.push({ level: 'critical', text: 'Kein Name eingetragen', tab: 'personal' });
+  }
+  if (!d.email && !d.phone) {
+    issues.push({ level: 'critical', text: 'Weder E-Mail noch Telefonnummer angegeben — Recruiter können dich nicht erreichen', tab: 'personal' });
+  }
+  if ((!d.exp || d.exp.length === 0) && (!d.edu || d.edu.length === 0)) {
+    issues.push({ level: 'critical', text: 'Keine Berufserfahrung und keine Ausbildung eingetragen', tab: 'experience' });
+  }
+
+  // ── WARNUNG: macht den CV schwächer, aber nicht unbrauchbar ──
+  if (d.email && !d.email.includes('@')) {
+    issues.push({ level: 'warning', text: 'E-Mail-Adresse sieht unvollständig aus (kein @)', tab: 'personal' });
+  }
+  if (!d.summary || d.summary.trim().length < 30) {
+    issues.push({ level: 'warning', text: 'Kein oder sehr kurzes Kurzprofil', tab: 'personal' });
+  }
+  if (d.exp && d.exp.length > 0) {
+    const emptyDesc = d.exp.filter(e => !e.desc || e.desc.trim().length < 15).length;
+    if (emptyDesc > 0) {
+      issues.push({ level: 'warning', text: `${emptyDesc} Erfahrungseintrag(e) ohne Beschreibung`, tab: 'experience' });
+    }
+    const noTitle = d.exp.filter(e => !e.title || !e.company).length;
+    if (noTitle > 0) {
+      issues.push({ level: 'warning', text: `${noTitle} Eintrag(e) ohne Jobtitel oder Unternehmen`, tab: 'experience' });
+    }
+  }
+  if (!d.skills || d.skills.length < 2) {
+    issues.push({ level: 'warning', text: 'Weniger als 2 Skills eingetragen', tab: 'skills' });
+  }
+  if (!d.role || d.role.trim().length < 2) {
+    issues.push({ level: 'warning', text: 'Keine Berufsbezeichnung angegeben', tab: 'personal' });
+  }
+
+  return issues;
+}
+
+// ── HAUPT-EINSTIEGSPUNKT (ersetzt direkten Download-Aufruf) ───
+function runHealthCheck(action) {
+  _healthPendingAction = action;
+  const issues = getHealthCheckIssues();
+  const critical = issues.filter(i => i.level === 'critical');
+  const warnings = issues.filter(i => i.level === 'warning');
+
+  // Keine Probleme → direkt durchstarten, kein Modal nötig
+  if (issues.length === 0) {
+    proceedAfterHealthCheck(true);
+    return;
+  }
+
+  renderHealthModal(critical, warnings);
+  document.getElementById('health-modal').style.display = 'flex';
+}
+
+// ── MODAL-INHALT RENDERN ──────────────────────────────────────
+function renderHealthModal(critical, warnings) {
+  const summaryEl = document.getElementById('health-summary');
+  const issuesEl  = document.getElementById('health-issues');
+  const proceedBtn = document.getElementById('health-proceed-btn');
+
+  const total = critical.length + warnings.length;
+  const summaryColor = critical.length > 0 ? '#c0392b' : '#d4941a';
+  const summaryText  = critical.length > 0
+    ? `${critical.length} kritische Problem(e) und ${warnings.length} Hinweis(e) gefunden`
+    : `${warnings.length} Verbesserungshinweis(e) gefunden`;
+
+  if (summaryEl) {
+    summaryEl.innerHTML = `<div class="health-summary-badge" style="color:${summaryColor};border-color:${summaryColor}33;background:${summaryColor}11;">
+      ${critical.length > 0 ? '⚠️' : '💡'} ${summaryText}
+    </div>`;
+  }
+
+  const renderIssue = (issue) => {
+    const icon = issue.level === 'critical' ? '🛑' : '⚠️';
+    const cls  = issue.level === 'critical' ? 'health-issue-critical' : 'health-issue-warning';
+    return `<div class="health-issue ${cls}" onclick="closeHealthModal(); switchToTab && switchToTab('${issue.tab}');">
+      <span class="health-issue-icon">${icon}</span>
+      <span class="health-issue-text">${issue.text}</span>
+      <span class="health-issue-arrow">→</span>
+    </div>`;
+  };
+
+  if (issuesEl) {
+    issuesEl.innerHTML = [...critical, ...warnings].map(renderIssue).join('');
+  }
+
+  // Wenn kritische Probleme vorliegen → "Trotzdem herunterladen" deaktivieren? 
+  // Nein — wir lassen es zu, aber mit deutlicher Warnfarbe
+  if (proceedBtn) {
+    if (critical.length > 0) {
+      proceedBtn.textContent = '⚠ Trotz kritischer Probleme herunterladen';
+      proceedBtn.classList.add('btn-danger');
+      proceedBtn.classList.remove('btn-primary');
+    } else {
+      proceedBtn.textContent = 'Trotzdem herunterladen →';
+      proceedBtn.classList.add('btn-primary');
+      proceedBtn.classList.remove('btn-danger');
+    }
+  }
+}
+
+// ── MODAL SCHLIESSEN ───────────────────────────────────────────
+function closeHealthModal() {
+  const modal = document.getElementById('health-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+// ── NACH BESTÄTIGUNG: TATSÄCHLICHEN DOWNLOAD AUSFÜHREN ─────────
+function proceedAfterHealthCheck(skipClose) {
+  if (!skipClose) closeHealthModal();
+  if (_healthPendingAction === 'ats') {
+    downloadATSPDF();
+  } else {
+    downloadPDF();
+  }
+  _healthPendingAction = null;
 }

@@ -338,8 +338,107 @@ textarea { resize: vertical; min-height: 72px; line-height: 1.6; }
 
 /* ── RESPONSIVE ── */
 @media (max-width: 900px) {
-  .app { grid-template-columns: 1fr; }
-  .preview { display: none; }
+  .app { grid-template-columns: 1fr; height: auto; min-height: 100vh; }
+
+  /* Editor & Vorschau: je nach Toggle ein-/ausblenden statt komplett entfernen */
+  .editor       { display: none; border-right: none; }
+  .editor.mobile-active { display: flex; }
+  .preview      { display: none; padding: 1rem 0.75rem 5rem; }
+  .preview.mobile-active { display: flex; }
+
+  /* Mobile View Toggle (Editor / Vorschau) */
+  .mobile-view-toggle {
+    display: flex;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 250;
+    background: #fff;
+    border-top: 1px solid var(--g-pale);
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.08);
+  }
+  .mvt-btn {
+    flex: 1;
+    padding: 13px 8px;
+    border: none;
+    background: #fff;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink-faint);
+    cursor: pointer;
+    transition: all 0.15s;
+    border-top: 3px solid transparent;
+  }
+  .mvt-btn.active {
+    color: var(--g-muted);
+    border-top-color: var(--g-muted);
+    background: var(--g-bg);
+  }
+
+  /* Editor braucht Platz fuer die Toggle-Bar unten */
+  .editor.mobile-active { padding-bottom: 60px; }
+
+  /* Topbar: Buttons kompakter, horizontal scrollbar bei Bedarf */
+  .topbar { padding: 0 0.75rem; }
+  .topbar-logo { font-size: 14px; }
+  .topbar-actions {
+    gap: 5px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 70vw;
+    scrollbar-width: none;
+  }
+  .topbar-actions::-webkit-scrollbar { display: none; }
+  .btn, .btn-ats {
+    padding: 7px 9px;
+    font-size: 10px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .lang-switcher { margin-right: 4px; }
+  .lang-btn { padding: 4px 7px; font-size: 11px; }
+
+  /* Editor-Tabs: horizontal scrollbar statt Umbruch/Quetschen */
+  .editor-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .editor-tabs::-webkit-scrollbar { display: none; }
+  .etab {
+    flex: 0 0 auto;
+    min-width: 76px;
+    padding: 11px 10px;
+    font-size: 10px;
+  }
+
+  /* Touch-freundlichere Eingabefelder */
+  input[type="text"], input[type="email"], input[type="tel"],
+  input[type="number"], input[type="date"], textarea, select {
+    font-size: 14px;
+    padding: 9px 10px;
+    min-height: 38px;
+  }
+  .dp-month, .dp-year { min-height: 38px; }
+  .btn-add { padding: 11px; font-size: 13px; }
+  .btn-del { font-size: 22px; padding: 4px 8px; }
+
+  /* CV-Vorschau: zentriert, Breite wird per JS skaliert (autoFitMobilePreview) */
+  #preview-area { align-items: center; }
+  .preview-toolbar { width: 100%; max-width: 100%; }
+  .cv-paper { transform-origin: top center; margin: 0 auto; }
+
+  /* ATS-Score & Job-Panel: kompaktere Abstaende */
+  .ats-score-visual { gap: 10px; }
+  .jd-tags { gap: 4px; }
+}
+
+/* ── Sehr kleine Screens (< 420px) ── */
+@media (max-width: 420px) {
+  .topbar-logo { display: none; }
+  .etab { min-width: 64px; font-size: 9px; padding: 10px 6px; }
+  .mvt-btn { font-size: 11px; padding: 11px 4px; }
+  .skill-display-toggle-wrap .sdtw-options { flex-direction: column; }
 }
 
 /* ── PRINT ── */
@@ -1459,3 +1558,235 @@ textarea { resize: vertical; min-height: 72px; line-height: 1.6; }
   transition: all 0.15s;
 }
 .ai-inline-undo:hover { background: #f0f0f0; border-color: #ccc; }
+
+/* ═══════════════════════════════════════════════
+   SCHRITT 8 — CV HEALTH CHECK MODAL
+   ═══════════════════════════════════════════════ */
+
+.health-modal-box { width: 440px; max-width: 95vw; }
+
+.health-summary { margin-bottom: 14px; }
+.health-summary-badge {
+  display: inline-block;
+  padding: 7px 12px;
+  border-radius: 7px;
+  border: 1px solid;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.health-issues {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 280px;
+  overflow-y: auto;
+  margin-bottom: 16px;
+}
+
+.health-issue {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 11px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1px solid transparent;
+}
+.health-issue:hover { transform: translateX(2px); }
+
+.health-issue-critical {
+  background: #fdeaea;
+  border-color: #f4b8b8;
+}
+.health-issue-critical:hover { background: #fbdada; }
+
+.health-issue-warning {
+  background: #fef6e8;
+  border-color: #f5dba0;
+}
+.health-issue-warning:hover { background: #fcecd0; }
+
+.health-issue-icon { font-size: 13px; flex-shrink: 0; }
+.health-issue-text {
+  flex: 1;
+  font-size: 12px;
+  color: var(--ink-mid);
+  line-height: 1.4;
+}
+.health-issue-arrow {
+  font-size: 12px;
+  color: var(--ink-faint);
+  flex-shrink: 0;
+}
+
+.health-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ═══════════════════════════════════════════════
+   SCHRITT 9 — ACTION VERB BIBLIOTHEK
+   ═══════════════════════════════════════════════ */
+
+/* ── Trigger-Button (neben den KI-Buttons) ── */
+.verb-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  background: linear-gradient(135deg, #8d5a2c 0%, #a36b35 100%);
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  font-family: inherit;
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.verb-trigger-btn:hover {
+  background: linear-gradient(135deg, #a36b35 0%, #b87c3e 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(141,90,44,0.35);
+}
+
+/* ── Popover-Container ── */
+.verb-popover {
+  width: 320px;
+  max-height: 400px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+  border: 1px solid var(--g-pale);
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: verb-pop-in 0.15s ease;
+}
+@keyframes verb-pop-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Header: Suche + Schließen ── */
+.verb-pop-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 10px 8px;
+  border-bottom: 1px solid var(--g-pale);
+}
+.verb-search {
+  flex: 1;
+  padding: 7px 10px;
+  border: 1.5px solid var(--g-pale);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 12.5px;
+  outline: none;
+}
+.verb-search:focus { border-color: var(--g-muted); }
+.verb-pop-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: var(--ink-faint);
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.verb-pop-close:hover { color: var(--red); }
+
+/* ── Kategorie-Tabs ── */
+.verb-pop-cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--g-pale);
+  max-height: 86px;
+  overflow-y: auto;
+}
+.verb-pop-cats.verb-cats-disabled { opacity: 0.4; pointer-events: none; }
+.verb-cat-btn {
+  padding: 4px 9px;
+  border-radius: 20px;
+  border: 1px solid var(--g-pale);
+  background: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.verb-cat-btn:hover { border-color: var(--g-muted); }
+.verb-cat-btn.active {
+  background: var(--g-muted);
+  color: #fff;
+  border-color: var(--g-muted);
+}
+
+/* ── Verb-Liste (Chips) ── */
+.verb-pop-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 10px;
+  overflow-y: auto;
+  flex: 1;
+  max-height: 200px;
+}
+.verb-chip {
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--g-pale);
+  background: #f9fafb;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-mid);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.verb-chip:hover {
+  background: var(--g-bg);
+  border-color: var(--g-muted);
+  color: var(--g-dark);
+  transform: translateY(-1px);
+}
+.verb-empty {
+  width: 100%;
+  text-align: center;
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  padding: 16px 0;
+}
+
+/* ── Hinweis-Zeile ── */
+.verb-pop-hint {
+  padding: 7px 10px;
+  font-size: 10px;
+  color: var(--ink-faint);
+  background: #f9fafb;
+  border-top: 1px solid var(--g-pale);
+  text-align: center;
+}
+
+/* ── Mobile: Popover als Bottom-Sheet ── */
+@media (max-width: 480px) {
+  .verb-popover {
+    position: fixed !important;
+    left: 8px !important;
+    right: 8px;
+    width: auto !important;
+    bottom: 64px !important;
+    top: auto !important;
+    max-height: 60vh;
+  }
+}
