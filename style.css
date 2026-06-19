@@ -1790,3 +1790,138 @@ textarea { resize: vertical; min-height: 72px; line-height: 1.6; }
     max-height: 60vh;
   }
 }
+
+/* ═══════════════════════════════════════════════
+   SCHRITT 10 — ONBOARDING FLOW
+   ═══════════════════════════════════════════════ */
+
+.ob-overlay { z-index: 1500; }
+.ob-modal-box {
+  width: 480px;
+  max-width: 92vw;
+  padding: 1.75rem 1.75rem 1.5rem;
+  max-height: 88vh;
+  overflow-y: auto;
+}
+
+/* ── Fortschritts-Punkte ── */
+.ob-dots {
+  display: flex;
+  justify-content: center;
+  gap: 7px;
+  margin-bottom: 18px;
+}
+.ob-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--g-pale);
+  transition: all 0.25s;
+}
+.ob-dot.active { background: var(--g-muted); width: 22px; border-radius: 4px; }
+.ob-dot.done   { background: var(--g-light); }
+
+/* ── Step-Container ── */
+.ob-step { text-align: center; }
+.ob-icon { font-size: 38px; margin-bottom: 10px; }
+
+.ob-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+.ob-title-sm { font-size: 19px; }
+
+.ob-sub {
+  font-size: 13px;
+  color: var(--ink-soft);
+  line-height: 1.55;
+  margin-bottom: 18px;
+}
+
+/* ── Feature-Liste (Schritt 1) ── */
+.ob-features {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+}
+.ob-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--g-bg);
+  border-radius: 9px;
+  border: 1px solid var(--g-pale);
+}
+.ob-feature-icon { font-size: 20px; flex-shrink: 0; line-height: 1.3; }
+.ob-feature-title { font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 2px; }
+.ob-feature-text  { font-size: 11.5px; color: var(--ink-soft); line-height: 1.4; }
+
+/* ── Auswahl-Karten (Schritt 2) ── */
+.ob-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ob-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 14px;
+  border: 1.5px solid var(--g-pale);
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.18s;
+  font-family: inherit;
+}
+.ob-card:hover {
+  border-color: var(--g-muted);
+  background: var(--g-bg);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+}
+.ob-card-icon { font-size: 24px; flex-shrink: 0; }
+.ob-card-title { font-size: 13.5px; font-weight: 700; color: var(--ink); display: block; }
+.ob-card-text  { font-size: 11px; color: var(--ink-faint); display: block; margin-top: 1px; }
+
+/* ── Tipp-Box (Schritt 3) ── */
+.ob-tip-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+  background: var(--g-bg);
+  border: 1px solid var(--g-pale);
+  border-radius: 10px;
+  padding: 14px;
+}
+.ob-tip-row {
+  font-size: 12.5px;
+  color: var(--ink-mid);
+  line-height: 1.5;
+  display: flex;
+  gap: 8px;
+}
+.ob-tip-row span { flex-shrink: 0; }
+
+/* ── Footer-Navigation ── */
+.ob-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 20px;
+}
+.ob-footer-spacer { flex: 1; }
+
+/* ── Mobile-Anpassung ── */
+@media (max-width: 480px) {
+  .ob-modal-box { padding: 1.25rem 1.1rem 1.1rem; width: 94vw; }
+  .ob-title { font-size: 18px; }
+  .ob-icon { font-size: 30px; }
+}

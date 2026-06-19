@@ -24,6 +24,7 @@
     </div>
     <span id="autosave-indicator" style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.05em;margin-right:2px;" title="Automatisch gespeichert"></span>
     <button class="btn btn-ghost"   onclick="openProfileModal()"  title="Profile verwalten" data-i18n="btnProfile">👤 Profile</button>
+    <button class="btn btn-ghost"   onclick="restartOnboarding()" title="Einführung erneut anzeigen">❓ Hilfe</button>
     <button class="btn btn-ghost"   onclick="undoDelete()"        id="undo-btn" title="Letztes gelöscht rückgängig (Ctrl+Z)" style="opacity:0.4;cursor:not-allowed;" disabled>↩ Undo</button>
     <button class="btn btn-ghost"   onclick="triggerImport()"     title="JSON Resume importieren" data-i18n="btnImport">📥 Import</button>
     <button class="btn btn-ghost"   onclick="resetAll()"          data-i18n="btnReset">Zurücksetzen</button>
@@ -46,6 +47,15 @@
       <button class="btn btn-primary" onclick="saveAsProfile()" style="flex:1;" data-i18n="btnSaveProfile">+ Aktuellen Stand speichern</button>
     </div>
     <div style="font-size:11px;color:#aaa;margin-top:10px;" data-i18n="profilesLocalHint">Profile werden lokal im Browser gespeichert. Max. 5 Profile.</div>
+  </div>
+</div>
+
+<!-- ── ONBOARDING MODAL ── -->
+<div class="modal-overlay ob-overlay" id="onboarding-modal" role="dialog" aria-modal="true" aria-labelledby="onboarding-title" style="display:none;">
+  <div class="modal-box ob-modal-box">
+    <div class="ob-dots" id="onboarding-dots"></div>
+    <div id="onboarding-body"></div>
+    <div class="ob-footer" id="onboarding-footer"></div>
   </div>
 </div>
 
@@ -894,5 +904,6 @@
 <script src="ats-score.js"></script>
 <script src="job-analyzer.js"></script>
 <script src="action-verbs.js"></script>
+<script src="onboarding.js"></script>
 </body>
 </html>
