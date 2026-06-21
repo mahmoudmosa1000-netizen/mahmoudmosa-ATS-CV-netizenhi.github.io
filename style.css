@@ -120,7 +120,10 @@ html, body {
 .editor-tabs {
   display: flex; border-bottom: 1px solid var(--g-pale);
   position: sticky; top: 0; background: var(--white); z-index: 10;
+  overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  flex-shrink: 0;
 }
+.editor-tabs::-webkit-scrollbar { display: none; }
 .etab {
   flex: 1; padding: 12px 6px; text-align: center;
   font-size: 11px; font-weight: 600;
@@ -352,6 +355,10 @@ textarea { resize: vertical; min-height: 72px; line-height: 1.6; }
 .cv-komp         { font-size: 10.5px; color: #444; padding: 5px 9px; background: #f2f7f1; border-radius: 4px; border-left: 2.5px solid #8db08a; line-height: 1.4; }
 
 /* ── RESPONSIVE ── */
+/* Mobile View Toggle: standardmäßig verborgen, nimmt sonst als 3. Grid-Element
+   die Spalten-Aufteilung von .app durcheinander (Editor/Vorschau vertauscht sich) */
+.mobile-view-toggle { display: none; }
+
 @media (max-width: 900px) {
   .app { grid-template-columns: 1fr; height: auto; min-height: 100vh; }
 
