@@ -2032,12 +2032,21 @@ function autoFitMobilePreview() {
   const paperWidth     = 720; // Basisbreite aus CSS (.cv-paper)
   const fitScale        = Math.max(0.32, Math.min(1, availableWidth / paperWidth));
 
-  paper.style.transform = `scale(${fitScale})`;
-  paper.style.marginBottom = `${(1 - fitScale) * -1050 + 24}px`;
-  if (paper2 && paper2.style.display !== 'none') {
-    paper2.style.transform = `scale(${fitScale})`;
-    paper2.style.marginBottom = `${(1 - fitScale) * -1050 + 24}px`;
-  }
+  // transform-origin "top left" verwenden, damit wir die Zentrierung exakt per
+  // margin-left berechnen können — "top center" + margin:auto zentriert eine
+  // breitere-als-Container Box NICHT korrekt (visueller Versatz nach rechts).
+  const scaledWidth = paperWidth * fitScale;
+  const centerOffset = Math.max(0, (availableWidth - scaledWidth) / 2);
+
+  [paper, paper2].forEach(p => {
+    if (!p || (p === paper2 && p.style.display === 'none')) return;
+    p.style.transformOrigin = 'top left';
+    p.style.transform       = `scale(${fitScale})`;
+    p.style.alignSelf       = 'flex-start'; // verhindert Doppel-Zentrierung durch #preview-area's align-items:center
+    p.style.marginLeft      = `${centerOffset}px`;
+    p.style.marginRight     = '0';
+    p.style.marginBottom    = `${(1 - fitScale) * -1050 + 24}px`;
+  });
 
   // Zoom-Label synchronisieren (informativ)
   const zl = document.getElementById('zoom-label');
@@ -2055,8 +2064,8 @@ window.addEventListener('resize', () => {
       // Zurück zu Desktop: normale Zoom-Stufe wiederherstellen
       const paper = document.getElementById('cv-paper');
       const paper2 = document.getElementById('cv-paper-2');
-      if (paper)  { paper.style.transform  = `scale(${zoom})`; paper.style.marginBottom = ''; }
-      if (paper2) { paper2.style.transform = `scale(${zoom})`; paper2.style.marginBottom = ''; }
+      if (paper)  { paper.style.transform  = `scale(${zoom})`; paper.style.marginBottom = ''; paper.style.transformOrigin = ''; paper.style.marginLeft = ''; paper.style.marginRight = ''; paper.style.alignSelf = ''; }
+      if (paper2) { paper2.style.transform = `scale(${zoom})`; paper2.style.marginBottom = ''; paper2.style.transformOrigin = ''; paper2.style.marginLeft = ''; paper2.style.marginRight = ''; paper2.style.alignSelf = ''; }
       const editorEl  = document.querySelector('.editor');
       const previewEl = document.getElementById('preview-area');
       if (editorEl)  editorEl.classList.remove('mobile-active');
