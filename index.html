@@ -29,8 +29,10 @@
     <button class="btn btn-ghost"   onclick="triggerImport()"     title="JSON Resume importieren" data-i18n="btnImport">📥 Import</button>
     <button class="btn btn-ghost"   onclick="resetAll()"          data-i18n="btnReset">Zurücksetzen</button>
     <button class="btn btn-ghost"   onclick="saveData()"          data-i18n="btnSave">💾 Speichern</button>
-    <button class="btn btn-ghost"   onclick="runHealthCheck('design')" data-i18n="btnDownloadPDF">⬇ Design-PDF</button>
-    <button class="btn btn-ats"     onclick="runHealthCheck('ats')" title="ATS-optimiertes Text-PDF — lesbar für alle Bewerbersysteme">🎯 ATS-PDF</button>
+    <div class="pdf-download-group">
+      <button class="btn btn-ats" onclick="runHealthCheck('combined')" title="Eine PDF-Datei: Design-Ansicht für Menschen + maschinenlesbarer ATS-Anhang">📎 CV herunterladen</button>
+      <button class="btn btn-ghost pdf-dd-toggle" onclick="togglePdfDropdown(event)" title="Weitere Download-Optionen" aria-label="Weitere Optionen">▾</button>
+    </div>
     <button class="btn btn-primary" onclick="exportPDF()"         data-i18n="btnPrint">🖨 Drucken</button>
   </div>
 </div>
@@ -901,6 +903,7 @@
 <script src="i18n.js"></script>
 <script src="script.js"></script>
 <script src="ats-pdf.js"></script>
+<script src="combined-pdf.js"></script>
 <script src="ats-score.js"></script>
 <script src="job-analyzer.js"></script>
 <script src="action-verbs.js"></script>

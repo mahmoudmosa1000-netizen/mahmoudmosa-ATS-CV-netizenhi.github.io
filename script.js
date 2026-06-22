@@ -1618,35 +1618,51 @@ function exportPDF(){window.print();}
 function downloadPDF(){
   const name=val('f-name')||'CV';
   const filename=name.replace(/\s+/g,'_')+'_Lebenslauf.pdf';
-  showToast(t('toastPDFBuilding'));
-  const pages=[{paperId:'cv-paper',leftId:'cv-left',paper:document.getElementById('cv-paper'),left:document.getElementById('cv-left'),right:document.getElementById('cv-right')}];
-  const p2el=document.getElementById('cv-paper-2');
-  if(p2el&&p2el.style.display!=='none')pages.push({paperId:'cv-paper-2',leftId:'cv-left-2',paper:p2el,left:document.getElementById('cv-left-2'),right:document.getElementById('cv-right-2')});
-  const savedT=pages.map(p=>{const s=p.paper.style.transform;p.paper.style.transform='scale(1)';return s;});
-  function offRel(el,anc){let x=0,y=0,cur=el;while(cur&&cur!==anc){x+=cur.offsetLeft;y+=cur.offsetTop;cur=cur.offsetParent;}return{x,y,w:el.offsetWidth,h:el.offsetHeight};}
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{
-    const heights=pages.map(p=>Math.max(p.paper.offsetHeight,p.left.scrollHeight,p.right.scrollHeight,1050));
-    const{jsPDF}=window.jspdf; const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
-    const pW=210,pH=297;
-    const next=i=>{
-      if(i>=pages.length){pages.forEach((p,idx)=>{p.paper.style.transform=savedT[idx];});pdf.save(filename);showToast(t('toastPDFDone'));return;}
-      const pg=pages[i],fullH=heights[i],col=state.color,paperPxW=pg.paper.offsetWidth||720;
-      const rawLinks=[];
-      pg.paper.querySelectorAll('a[href]').forEach(link=>{const href=link.getAttribute('href');if(!href||href==='#')return;const pos=offRel(link,pg.paper);rawLinks.push({url:href,xPx:pos.x,yPx:pos.y,wPx:Math.max(pos.w,60),hPx:Math.max(pos.h,14)});});
-      html2canvas(pg.paper,{scale:4,useCORS:true,allowTaint:true,backgroundColor:'#ffffff',logging:false,
-        onclone:doc=>{const cP=doc.getElementById(pg.paperId);const cL=doc.getElementById(pg.leftId);if(cP){cP.style.display='table';cP.style.minHeight=fullH+'px';cP.style.height=fullH+'px';}if(cL){cL.style.display='table-cell';cL.style.height=fullH+'px';cL.style.minHeight=fullH+'px';cL.style.backgroundColor=col;cL.style.background=col;}}
-      }).then(canvas=>{
-        if(i>0)pdf.addPage();
-        const firstPage=pdf.getNumberOfPages(),imgH=(canvas.height*pW)/canvas.width;
-        let posY=0,rem=imgH,isFirst=true;
-        while(rem>0){if(!isFirst)pdf.addPage();pdf.addImage(canvas.toDataURL('image/jpeg',0.98),'JPEG',0,-posY,pW,imgH);posY+=pH;rem-=pH;isFirst=false;}
-        const mmX=pW/paperPxW,mmY=imgH/fullH;
-        rawLinks.forEach(({url,xPx,yPx,wPx,hPx})=>{const xM=xPx*mmX,yM=yPx*mmY,wM=wPx*mmX,hM=hPx*mmY,pgIdx=Math.floor(yM/pH),yOp=yM-pgIdx*pH,tPg=firstPage+pgIdx;if(tPg<=pdf.getNumberOfPages()){pdf.setPage(tPg);pdf.link(xM,yOp,wM,hM,{url});}});
-        pdf.setPage(pdf.getNumberOfPages());next(i+1);
-      }).catch(err=>{console.error(err);showToast(t('toastPDFError'));pages.forEach((p,idx)=>{p.paper.style.transform=savedT[idx];});});
-    };
-    next(0);
-  }));
+  generateDesignPDFBytes().then(bytes=>{
+    const blob=new Blob([bytes],{type:'application/pdf'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download=filename; a.click();
+    URL.revokeObjectURL(url);
+    showToast(t('toastPDFDone'));
+  }).catch(err=>{console.error(err);showToast(t('toastPDFError'));});
+}
+
+/** Generiert das visuelle Design-PDF (html2canvas+jsPDF) und liefert die
+ *  rohen PDF-Bytes statt direkt zu speichern — wiederverwendbar für den
+ *  eigenständigen Download UND für das kombinierte CV+ATS-PDF. */
+function generateDesignPDFBytes(){
+  return new Promise((resolve,reject)=>{
+    showToast(t('toastPDFBuilding'));
+    const pages=[{paperId:'cv-paper',leftId:'cv-left',paper:document.getElementById('cv-paper'),left:document.getElementById('cv-left'),right:document.getElementById('cv-right')}];
+    const p2el=document.getElementById('cv-paper-2');
+    if(p2el&&p2el.style.display!=='none')pages.push({paperId:'cv-paper-2',leftId:'cv-left-2',paper:p2el,left:document.getElementById('cv-left-2'),right:document.getElementById('cv-right-2')});
+    const savedT=pages.map(p=>{const s=p.paper.style.transform;p.paper.style.transform='scale(1)';return s;});
+    function offRel(el,anc){let x=0,y=0,cur=el;while(cur&&cur!==anc){x+=cur.offsetLeft;y+=cur.offsetTop;cur=cur.offsetParent;}return{x,y,w:el.offsetWidth,h:el.offsetHeight};}
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      const heights=pages.map(p=>Math.max(p.paper.offsetHeight,p.left.scrollHeight,p.right.scrollHeight,1050));
+      const{jsPDF}=window.jspdf; const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+      const pW=210,pH=297;
+      const next=i=>{
+        if(i>=pages.length){pages.forEach((p,idx)=>{p.paper.style.transform=savedT[idx];});resolve(pdf.output('arraybuffer'));return;}
+        const pg=pages[i],fullH=heights[i],col=state.color,paperPxW=pg.paper.offsetWidth||720;
+        const rawLinks=[];
+        pg.paper.querySelectorAll('a[href]').forEach(link=>{const href=link.getAttribute('href');if(!href||href==='#')return;const pos=offRel(link,pg.paper);rawLinks.push({url:href,xPx:pos.x,yPx:pos.y,wPx:Math.max(pos.w,60),hPx:Math.max(pos.h,14)});});
+        html2canvas(pg.paper,{scale:4,useCORS:true,allowTaint:true,backgroundColor:'#ffffff',logging:false,
+          onclone:doc=>{const cP=doc.getElementById(pg.paperId);const cL=doc.getElementById(pg.leftId);if(cP){cP.style.display='table';cP.style.minHeight=fullH+'px';cP.style.height=fullH+'px';}if(cL){cL.style.display='table-cell';cL.style.height=fullH+'px';cL.style.minHeight=fullH+'px';cL.style.backgroundColor=col;cL.style.background=col;}}
+        }).then(canvas=>{
+          if(i>0)pdf.addPage();
+          const firstPage=pdf.getNumberOfPages(),imgH=(canvas.height*pW)/canvas.width;
+          let posY=0,rem=imgH,isFirst=true;
+          while(rem>0){if(!isFirst)pdf.addPage();pdf.addImage(canvas.toDataURL('image/jpeg',0.98),'JPEG',0,-posY,pW,imgH);posY+=pH;rem-=pH;isFirst=false;}
+          const mmX=pW/paperPxW,mmY=imgH/fullH;
+          rawLinks.forEach(({url,xPx,yPx,wPx,hPx})=>{const xM=xPx*mmX,yM=yPx*mmY,wM=wPx*mmX,hM=hPx*mmY,pgIdx=Math.floor(yM/pH),yOp=yM-pgIdx*pH,tPg=firstPage+pgIdx;if(tPg<=pdf.getNumberOfPages()){pdf.setPage(tPg);pdf.link(xM,yOp,wM,hM,{url});}});
+          pdf.setPage(pdf.getNumberOfPages());next(i+1);
+        }).catch(err=>{pages.forEach((p,idx)=>{p.paper.style.transform=savedT[idx];});reject(err);});
+      };
+      next(0);
+    }));
+  });
 }
 
 // ─── TOAST ───────────────────────────────────────
@@ -2095,7 +2111,7 @@ render = function(...args) {
 // SCHRITT 8 — CV HEALTH CHECK VOR DOWNLOAD
 // ═══════════════════════════════════════════════════════════════
 
-let _healthPendingAction = null; // 'design' | 'ats'
+let _healthPendingAction = null; // 'combined' (Standard) | 'design' | 'ats'
 
 // ── KRITISCHE PRÜFREGELN (Blocker, nicht nur Hinweise wie ATS-Score) ──
 function getHealthCheckIssues() {
@@ -2215,8 +2231,58 @@ function proceedAfterHealthCheck(skipClose) {
   if (!skipClose) closeHealthModal();
   if (_healthPendingAction === 'ats') {
     downloadATSPDF();
-  } else {
+  } else if (_healthPendingAction === 'design') {
     downloadPDF();
+  } else {
+    downloadCombinedPDF(); // Standard: kombiniertes PDF (Design + ATS-Anhang)
   }
   _healthPendingAction = null;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PDF-DOWNLOAD DROPDOWN (Design-/ATS-Einzelversionen)
+// Wird dynamisch an document.body angehängt (wie der Verb-Popover),
+// da .topbar-actions wegen overflow-x:auto vertikales Überlaufen
+// abschneidet — ein verschachteltes Dropdown würde sonst unsichtbar
+// geclippt werden.
+// ═══════════════════════════════════════════════════════════════
+function togglePdfDropdown(e) {
+  if (e) e.stopPropagation();
+  const existing = document.getElementById('pdf-dd-menu');
+  if (existing) { existing.remove(); document.removeEventListener('click', closePdfDropdownOnOutsideClick, true); return; }
+
+  const toggleBtn = e ? e.currentTarget : document.querySelector('.pdf-dd-toggle');
+  const menu = document.createElement('div');
+  menu.id = 'pdf-dd-menu';
+  menu.className = 'pdf-dd-menu';
+  menu.innerHTML = `
+    <button type="button" onclick="closePdfDropdown(); runHealthCheck('design')">🎨 Nur Design-Version<span>Visuell, ohne ATS-Anhang</span></button>
+    <button type="button" onclick="closePdfDropdown(); runHealthCheck('ats')">🎯 Nur ATS-Text-Version<span>Reiner Text, keine Grafik</span></button>
+  `;
+  document.body.appendChild(menu);
+
+  // Position relativ zum Toggle-Button berechnen (fixed, viewport-sicher)
+  const rect = toggleBtn.getBoundingClientRect();
+  const menuWidth = 230;
+  let left = rect.right - menuWidth;
+  let top  = rect.bottom + 6;
+  if (left < 8) left = 8;
+  if (top + 110 > window.innerHeight) top = rect.top - 116;
+  menu.style.position = 'fixed';
+  menu.style.left = left + 'px';
+  menu.style.top  = top + 'px';
+
+  setTimeout(() => document.addEventListener('click', closePdfDropdownOnOutsideClick, true), 10);
+}
+function closePdfDropdown() {
+  const menu = document.getElementById('pdf-dd-menu');
+  if (menu) menu.remove();
+  document.removeEventListener('click', closePdfDropdownOnOutsideClick, true);
+}
+function closePdfDropdownOnOutsideClick(e) {
+  const menu = document.getElementById('pdf-dd-menu');
+  if (!menu) return;
+  if (menu.contains(e.target)) return;
+  if (e.target.closest && e.target.closest('.pdf-dd-toggle')) return;
+  closePdfDropdown();
 }

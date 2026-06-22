@@ -10,80 +10,113 @@
 //    ✓ Seitenzahlen
 //    ✓ Skill-Level als Text, nicht als Balken
 //    ✓ Mehrsprachige Abschnittstitel (DE/EN/AR)
+//
+//  STRUKTUR:
+//    buildATSContentPages(doc, opts) — fügt ATS-Seiten zu einem
+//      BESTEHENDEN PDFDocument hinzu (wird auch fürs kombinierte
+//      PDF in combined-pdf.js wiederverwendet)
+//    downloadATSPDF()                — Standalone-Download (Schritt 1)
 // ═══════════════════════════════════════════════════════════════
 
-async function downloadATSPDF() {
+// ── pdf-lib lazy laden (von mehreren Modulen genutzt) ──────────
+async function ensurePDFLib() {
+  if (typeof PDFLib !== 'undefined') return;
+  showToast('⏳ PDF-Bibliothek wird geladen…');
+  await new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js';
+    s.onload  = resolve;
+    s.onerror = () => reject(new Error('pdf-lib konnte nicht geladen werden'));
+    document.head.appendChild(s);
+  });
+}
 
-  // ── GUARD: pdf-lib lazy laden falls noch nicht vorhanden ──
-  if (typeof PDFLib === 'undefined') {
-    showToast('⏳ PDF-Bibliothek wird geladen…');
-    await new Promise((resolve, reject) => {
-      const s = document.createElement('script');
-      s.src = 'https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js';
-      s.onload  = resolve;
-      s.onerror = () => reject(new Error('pdf-lib konnte nicht geladen werden'));
-      document.head.appendChild(s);
-    });
-  }
+/**
+ * Fügt ATS-lesbare Text-Seiten zu einem BESTEHENDEN PDFDocument hinzu.
+ * Wird sowohl von downloadATSPDF() (Schritt 1, eigenständig) als auch
+ * von downloadCombinedPDF() (kombiniert mit dem Design-PDF) genutzt.
+ *
+ * @param {PDFDocument} doc - bereits erstelltes pdf-lib Dokument
+ * @param {object} opts - { appendLabel: boolean } — zeigt einen Hinweis-
+ *   Header auf der ersten ATS-Seite, wenn diese an ein Design-PDF angehängt wird
+ */
+async function buildATSContentPages(doc, opts = {}) {
+  const { StandardFonts, rgb } = PDFLib;
+  const appendLabel = !!opts.appendLabel;
 
   const d = collectData();
-  if (!d.name && !d.role && !d.exp?.length) {
-    showToast('⚠ Bitte zuerst Daten eingeben.');
-    return;
+
+  // ── DOKUMENT ERSTELLEN ───────────────────────
+  const fontReg  = await doc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const fontItalic = await doc.embedFont(StandardFonts.HelveticaOblique);
+
+  // ── SEITEN-KONSTANTEN (A4) ───────────────────
+  const PW     = 595.28;   // Seitenbreite in pt
+  const PH     = 841.89;   // Seitenhöhe in pt
+  const ML     = 52;       // Linker Rand
+  const MR     = 52;       // Rechter Rand
+  const MT     = 55;       // Oberer Rand
+  const MB     = 45;       // Unterer Rand
+  const CW     = PW - ML - MR; // Nutzbare Breite
+
+  // ── SCHRIFTGRÖSSEN ──────────────────────────
+  const FS = {
+    name:    20,
+    role:    11.5,
+    contact: 9,
+    section: 9.5,
+    body:    9.5,
+    small:   8.5,
+  };
+
+  // ── ZEILENABSTÄNDE ──────────────────────────
+  const LH = {
+    name:       26,
+    role:       15,
+    contact:    12,
+    section:    14,
+    body:       13,
+    bodySmall:  11.5,
+  };
+
+  // ── FARBEN ──────────────────────────────────
+  const C = {
+    black:   rgb(0.07, 0.07, 0.07),
+    dark:    rgb(0.15, 0.15, 0.15),
+    gray:    rgb(0.38, 0.38, 0.38),
+    light:   rgb(0.55, 0.55, 0.55),
+    rule:    rgb(0.25, 0.25, 0.25),
+    ruleLight: rgb(0.70, 0.70, 0.70),
+    labelBg: rgb(0.93, 0.96, 0.93),
+    labelText: rgb(0.28, 0.42, 0.27),
+  };
+
+  // ── ZUSTAND ─────────────────────────────────
+  let page = doc.addPage([PW, PH]);
+  let y    = PH - MT;
+
+  // ── HINWEIS-LABEL (nur wenn an Design-PDF angehängt) ────────
+  // Macht für jeden Leser sofort klar, warum diese Seite(n) anders aussehen
+  if (appendLabel) {
+    const labelH = 26;
+    page.drawRectangle({
+      x: 0, y: PH - labelH, width: PW, height: labelH,
+      color: rgb(0.93, 0.96, 0.93),
+    });
+    const labelLang = (typeof currentLang !== 'undefined') ? currentLang : 'de';
+    const labelText = {
+      de: 'MASCHINENLESBARE ZUSAMMENFASSUNG — FÜR BEWERBERMANAGEMENTSYSTEME (ATS)',
+      en: 'MACHINE-READABLE SUMMARY — FOR APPLICANT TRACKING SYSTEMS (ATS)',
+      ar: 'ملخص قابل للقراءة آليًا — لأنظمة تتبع المتقدمين (ATS)',
+    }[labelLang] || 'MASCHINENLESBARE ZUSAMMENFASSUNG — FÜR BEWERBERMANAGEMENTSYSTEME (ATS)';
+    page.drawText(labelText, {
+      x: ML, y: PH - labelH + 9,
+      font: fontBold, size: 7.5,
+      color: rgb(0.28, 0.42, 0.27),
+    });
+    y = PH - MT - labelH; // Inhalt beginnt unterhalb des Labels
   }
-
-  showToast('⏳ ATS-PDF wird erstellt…');
-
-  try {
-    const { PDFDocument, StandardFonts, rgb } = PDFLib;
-
-    // ── DOKUMENT ERSTELLEN ───────────────────────
-    const doc      = await PDFDocument.create();
-    const fontReg  = await doc.embedFont(StandardFonts.Helvetica);
-    const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
-
-    // ── SEITEN-KONSTANTEN (A4) ───────────────────
-    const PW     = 595.28;   // Seitenbreite in pt
-    const PH     = 841.89;   // Seitenhöhe in pt
-    const ML     = 52;       // Linker Rand
-    const MR     = 52;       // Rechter Rand
-    const MT     = 55;       // Oberer Rand
-    const MB     = 45;       // Unterer Rand
-    const CW     = PW - ML - MR; // Nutzbare Breite
-
-    // ── SCHRIFTGRÖSSEN ──────────────────────────
-    const FS = {
-      name:    20,
-      role:    11.5,
-      contact: 9,
-      section: 9.5,
-      body:    9.5,
-      small:   8.5,
-    };
-
-    // ── ZEILENABSTÄNDE ──────────────────────────
-    const LH = {
-      name:       26,
-      role:       15,
-      contact:    12,
-      section:    14,
-      body:       13,
-      bodySmall:  11.5,
-    };
-
-    // ── FARBEN ──────────────────────────────────
-    const C = {
-      black:   rgb(0.07, 0.07, 0.07),
-      dark:    rgb(0.15, 0.15, 0.15),
-      gray:    rgb(0.38, 0.38, 0.38),
-      light:   rgb(0.55, 0.55, 0.55),
-      rule:    rgb(0.25, 0.25, 0.25),
-      ruleLight: rgb(0.70, 0.70, 0.70),
-    };
-
-    // ── ZUSTAND ─────────────────────────────────
-    let page = doc.addPage([PW, PH]);
-    let y    = PH - MT;
 
     // ── SPRACHLABELS ────────────────────────────
     const lang = (typeof currentLang !== 'undefined') ? currentLang : 'de';
@@ -487,40 +520,78 @@ async function downloadATSPDF() {
       });
     }
 
-    // ────────────────────────────────────────────────
-    // ── SEITENZAHLEN ────────────────────────────────
-    // ────────────────────────────────────────────────
-    const totalPages = doc.getPageCount();
-    doc.getPages().forEach((pg, idx) => {
-      const numText = `${idx + 1} / ${totalPages}`;
-      const numW = fontReg.widthOfTextAtSize(numText, FS.small);
-      pg.drawText(numText, {
-        x: PW / 2 - numW / 2,
-        y: MB / 2,
-        font: fontReg,
-        size: FS.small,
-        color: C.light,
-      });
+  // buildATSContentPages() endet hier — Seitenzahlen, Metadaten und
+  // Download werden von den Wrapper-Funktionen unten übernommen, da
+  // diese je nach Kontext (eigenständig vs. kombiniert) variieren.
+}
+
+/** Setzt einheitliche Seitenzahlen über ALLE Seiten eines Dokuments
+ *  (auch über bereits vorhandene Design-Seiten hinweg, falls kombiniert). */
+async function addPageNumbers(doc) {
+  const { StandardFonts, rgb } = PDFLib;
+  const fontReg = await doc.embedFont(StandardFonts.Helvetica);
+  const totalPages = doc.getPageCount();
+  const light = rgb(0.55, 0.55, 0.55);
+  doc.getPages().forEach((pg, idx) => {
+    const numText = `${idx + 1} / ${totalPages}`;
+    const numW = fontReg.widthOfTextAtSize(numText, 8.5);
+    const { width } = pg.getSize();
+    pg.drawText(numText, {
+      x: width / 2 - numW / 2,
+      y: 22.5,
+      font: fontReg,
+      size: 8.5,
+      color: light,
     });
+  });
+}
 
-    // ── META-DATEN (ATS-relevant) ────────────────
-    doc.setTitle(san(d.name || 'Lebenslauf') + ' – ' + san(d.role || 'CV'));
-    doc.setAuthor(san(d.name || ''));
-    doc.setSubject('ATS-optimierter Lebenslauf');
-    doc.setKeywords(['Lebenslauf', 'CV', san(d.role || ''), san(d.name || '')]);
-    doc.setCreator('CV Builder – ATS Mode');
+/** Setzt Standard-PDF-Metadaten (Titel, Autor, Keywords — ATS-relevant). */
+function addATSMetadata(doc, d) {
+  const name = d.name || 'Lebenslauf';
+  const role = d.role || 'CV';
+  doc.setTitle(name + ' – ' + role);
+  doc.setAuthor(name);
+  doc.setSubject('ATS-optimierter Lebenslauf');
+  doc.setKeywords(['Lebenslauf', 'CV', role, name]);
+  doc.setCreator('CV Builder – ATS Mode');
+}
 
-    // ── DOWNLOAD ────────────────────────────────
-    const pdfBytes = await doc.save();
-    const blob     = new Blob([pdfBytes], { type: 'application/pdf' });
-    const url      = URL.createObjectURL(blob);
-    const a        = document.createElement('a');
-    a.href         = url;
-    a.download     = san(d.name || 'Lebenslauf').replace(/\s+/g, '_') + '_ATS.pdf';
-    a.click();
-    URL.revokeObjectURL(url);
+/** Speichert ein pdf-lib Dokument als Datei-Download. */
+async function savePDFDocAs(doc, filename) {
+  const pdfBytes = await doc.save();
+  const blob     = new Blob([pdfBytes], { type: 'application/pdf' });
+  const url      = URL.createObjectURL(blob);
+  const a        = document.createElement('a');
+  a.href         = url;
+  a.download     = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  STANDALONE-DOWNLOAD: nur die ATS-Text-Version (Schritt 1)
+// ═══════════════════════════════════════════════════════════════
+async function downloadATSPDF() {
+  await ensurePDFLib();
+
+  const d = collectData();
+  if (!d.name && !d.role && !d.exp?.length) {
+    showToast('⚠ Bitte zuerst Daten eingeben.');
+    return;
+  }
+
+  showToast('⏳ ATS-PDF wird erstellt…');
+
+  try {
+    const { PDFDocument } = PDFLib;
+    const doc = await PDFDocument.create();
+    await buildATSContentPages(doc, { appendLabel: false });
+    await addPageNumbers(doc);
+    addATSMetadata(doc, d);
+    const filename = (d.name || 'Lebenslauf').replace(/\s+/g, '_') + '_ATS.pdf';
+    await savePDFDocAs(doc, filename);
     showToast('✓ ATS-PDF erstellt — maschinenlesbar & ATS-kompatibel!');
-
   } catch (err) {
     console.error('[ATS-PDF] Fehler:', err);
     showToast('❌ Fehler: ' + (err.message || String(err)));
