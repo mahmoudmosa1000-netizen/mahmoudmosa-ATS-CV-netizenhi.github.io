@@ -23,17 +23,18 @@
       <button class="lang-btn"        data-lang="ar" onclick="setLang('ar')">🇸🇾 عر</button>
     </div>
     <span id="autosave-indicator" style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.05em;margin-right:2px;" title="Automatisch gespeichert"></span>
-    <button class="btn btn-ghost"   onclick="openProfileModal()"  title="Profile verwalten" data-i18n="btnProfile">👤 Profile</button>
-    <button class="btn btn-ghost"   onclick="restartOnboarding()" title="Einführung erneut anzeigen">❓ Hilfe</button>
-    <button class="btn btn-ghost"   onclick="undoDelete()"        id="undo-btn" title="Letztes gelöscht rückgängig (Ctrl+Z)" style="opacity:0.4;cursor:not-allowed;" disabled>↩ Undo</button>
-    <button class="btn btn-ghost"   onclick="triggerImport()"     title="JSON Resume importieren" data-i18n="btnImport">📥 Import</button>
-    <button class="btn btn-ghost"   onclick="resetAll()"          data-i18n="btnReset">Zurücksetzen</button>
-    <button class="btn btn-ghost"   onclick="saveData()"          data-i18n="btnSave">💾 Speichern</button>
+    <button class="btn btn-ghost btn-icon" onclick="openProfileModal()"  title="Profile verwalten">👤</button>
+    <button class="btn btn-ghost btn-icon" onclick="restartOnboarding()" title="Hilfe & Einführung">❓</button>
+    <button class="btn btn-ghost btn-icon" onclick="undoDelete()" id="undo-btn" title="Rückgängig (Ctrl+Z)" style="opacity:0.4;cursor:not-allowed;" disabled>↩</button>
+    <button class="btn btn-ghost btn-icon" onclick="triggerImport()" title="JSON Resume importieren">📥</button>
+    <button class="btn btn-ghost btn-sm"   onclick="resetAll()" data-i18n="btnReset">Zurücksetzen</button>
+    <button class="btn btn-ghost btn-sm"   onclick="saveData()"          data-i18n="btnSave">💾</button>
+    <span class="topbar-sep" aria-hidden="true"></span>
     <div class="pdf-download-group">
-      <button class="btn btn-ats" onclick="runHealthCheck('combined')" title="Eine PDF-Datei: Design-Ansicht für Menschen + maschinenlesbarer ATS-Anhang">📎 CV herunterladen</button>
+      <button class="btn btn-primary" onclick="runHealthCheck('combined')" title="Eine PDF-Datei: Design-Ansicht + maschinenlesbarer ATS-Anhang">⬇ CV herunterladen</button>
       <button class="btn btn-ghost pdf-dd-toggle" onclick="togglePdfDropdown(event)" title="Weitere Download-Optionen" aria-label="Weitere Optionen">▾</button>
     </div>
-    <button class="btn btn-primary" onclick="exportPDF()"         data-i18n="btnPrint">🖨 Drucken</button>
+    <button class="btn btn-ghost" onclick="exportPDF()"         data-i18n="btnPrint">🖨</button>
   </div>
 </div>
 
@@ -105,10 +106,10 @@
         </span>
         <span class="ats-toggle-right">
           <span id="ats-score-value" class="ats-score-num">&#8211;</span>
-          <span class="ats-toggle-arrow" id="ats-arrow">&#9660;</span>
+          <span class="ats-toggle-arrow" id="ats-arrow">&#9650;</span>
         </span>
       </button>
-      <div id="ats-score-body" class="ats-score-body" style="display:none;">
+      <div id="ats-score-body" class="ats-score-body">
         <div class="ats-score-visual">
           <svg class="ats-ring" viewBox="0 0 72 72" width="72" height="72">
             <circle cx="36" cy="36" r="28" fill="none" stroke="#ebebeb" stroke-width="7"/>
@@ -136,13 +137,13 @@
     </div>
 
     <div class="editor-tabs">
-      <button class="etab active" onclick="switchTab('personal',this)"   data-i18n="tabPerson">Person</button>
-      <button class="etab"        onclick="switchTab('experience',this)" data-i18n="tabExperience">Erfahrung</button>
-      <button class="etab"        onclick="switchTab('education',this)"  data-i18n="tabEducation">Bildung</button>
-      <button class="etab"        onclick="switchTab('skills',this)"     data-i18n="tabSkills">Skills</button>
-      <button class="etab"        onclick="switchTab('extras',this)" data-i18n="btnExtras">Extras</button>
-      <button class="etab"        onclick="switchTab('design',this)"     data-i18n="tabDesign">Design</button>
-      <button class="etab"        onclick="switchTab('page2',this)"      data-i18n="tabPage2">+ S.2</button>
+      <button class="etab active" onclick="switchTab('personal',this)"   data-i18n="tabPerson">👤 Person</button>
+      <button class="etab"        onclick="switchTab('experience',this)" data-i18n="tabExperience">💼 Job</button>
+      <button class="etab"        onclick="switchTab('education',this)"  data-i18n="tabEducation">🎓 Bildung</button>
+      <button class="etab"        onclick="switchTab('skills',this)"     data-i18n="tabSkills">⚙ Skills</button>
+      <button class="etab"        onclick="switchTab('extras',this)" data-i18n="btnExtras">➕ Extras</button>
+      <button class="etab"        onclick="switchTab('design',this)"     data-i18n="tabDesign">🎨 Design</button>
+      <button class="etab"        onclick="switchTab('page2',this)"      data-i18n="tabPage2">📄+</button>
       <button class="etab etab-ai" onclick="switchTab('ai',this)"         title="KI-Textassistent">✨ KI</button>
       <button class="etab etab-jd"  onclick="switchTab('job',this)" title="Stellenanzeige analysieren">🔍 Job</button>
     </div>

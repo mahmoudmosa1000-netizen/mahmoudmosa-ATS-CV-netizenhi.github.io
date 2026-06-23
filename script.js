@@ -1666,10 +1666,24 @@ function generateDesignPDFBytes(){
 }
 
 // ─── TOAST ───────────────────────────────────────
-function showToast(msg){
-  let el=document.getElementById('toast');
-  if(!el){el=document.createElement('div');el.id='toast';Object.assign(el.style,{position:'fixed',bottom:'1.5rem',right:'1.5rem',background:'#2d3d2c',color:'#fff',padding:'10px 20px',borderRadius:'8px',fontSize:'13px',fontWeight:'600',zIndex:'9999',transition:'opacity 0.3s'});document.body.appendChild(el);}
-  el.textContent=msg;el.style.opacity='1';clearTimeout(el._to);el._to=setTimeout(()=>el.style.opacity='0',2400);
+function showToast(msg, type) {
+  let el = document.getElementById('toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'toast';
+    document.body.appendChild(el);
+  }
+  // Typ aus Nachrichteninhalt ableiten wenn nicht angegeben
+  if (!type) {
+    if (msg.startsWith('✓') || msg.startsWith('✅')) type = 'success';
+    else if (msg.startsWith('❌') || msg.startsWith('⚠')) type = 'error';
+    else type = 'info';
+  }
+  el.className = `toast toast-${type}`;
+  el.textContent = msg;
+  el.style.opacity = '1';
+  clearTimeout(el._to);
+  el._to = setTimeout(() => { el.style.opacity = '0'; }, 2600);
 }
 
 // ─── PHOTO ───────────────────────────────────────

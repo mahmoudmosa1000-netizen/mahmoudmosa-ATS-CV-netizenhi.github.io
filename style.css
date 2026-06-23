@@ -2000,3 +2000,93 @@ textarea { resize: vertical; min-height: 72px; line-height: 1.6; }
   color: var(--ink-faint);
   margin-top: 2px;
 }
+
+/* ═══════════════════════════════════════════════
+   ALLGEMEINE UI-VERBESSERUNGEN
+   ═══════════════════════════════════════════════ */
+
+/* ── 1+2: Topbar Button-Varianten & Trenner ── */
+.btn-icon {
+  padding: 7px 9px !important;
+  font-size: 13px !important;
+  min-width: 0;
+}
+.btn-sm {
+  padding: 7px 10px !important;
+  font-size: 10.5px !important;
+}
+.topbar-sep {
+  width: 1px;
+  height: 20px;
+  background: rgba(255,255,255,0.15);
+  flex-shrink: 0;
+  margin: 0 2px;
+}
+
+/* btn-ats "NEU"-Badge entfernen (nicht mehr nötig) */
+.btn-ats::after { display: none; }
+
+/* ── 3: ATS-Score Panel — kompakter ── */
+.ats-ring { width: 56px; height: 56px; }
+#ats-score-ring-text { font-size: 14px; }
+#ats-ring-circle { stroke-width: 6; }
+.ats-score-body { padding: 0 1rem 10px; }
+.ats-score-visual { gap: 10px; margin-bottom: 8px; }
+
+/* ── 4: Editor Tabs — kompakter mit Icons ── */
+.etab {
+  padding: 10px 5px;
+  font-size: 10px;
+  min-width: 0;
+  flex: 1;
+  white-space: nowrap;
+}
+
+/* ── 5: KI-Buttons — kompakter bei kleiner Breite ── */
+.ai-inline-btns { flex-wrap: wrap; gap: 4px; }
+.ai-inline-btn  { padding: 3px 7px; font-size: 10px; }
+.ai-inline-btn-alt { padding: 3px 7px; font-size: 10px; }
+.verb-trigger-btn  { padding: 3px 7px; font-size: 10px; }
+
+/* ── 6: Eingabefelder — besserer Focus-Ring ── */
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="tel"]:focus,
+input[type="number"]:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--g-muted) !important;
+  box-shadow: 0 0 0 3px rgba(90,115,88,0.15);
+  outline: none;
+}
+
+/* ── 7: Toast — aufgewertet mit Farben ── */
+.toast {
+  position: fixed;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--g-dark);
+  color: #fff;
+  padding: 10px 20px 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  z-index: 9999;
+  pointer-events: none;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.28);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 90vw;
+  white-space: nowrap;
+  animation: toast-in 0.2s ease;
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(-6px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+/* Toast-Farben je nach Inhalt */
+.toast-success { background: #2d5a2d; border-left: 3px solid #4caf50; }
+.toast-error   { background: #7a1a1a; border-left: 3px solid #f44336; }
+.toast-info    { background: var(--g-dark); border-left: 3px solid var(--g-light); }
