@@ -464,6 +464,57 @@
     <!-- ── DESIGN ── -->
     <div id="panel-design" class="epanel">
 
+      <!-- Vorlage wählen -->
+      <div class="section-divider">📐 Vorlage</div>
+      <div class="template-grid">
+        <button class="tpl-card active" onclick="selectTemplate('classic',this)">
+          <div class="tpl-preview">
+            <div style="width:26px;background:var(--g-muted);flex-shrink:0;"></div>
+            <div style="flex:1;padding:5px 4px;display:flex;flex-direction:column;gap:3px;">
+              <div style="height:5px;background:#aaa;border-radius:2px;"></div>
+              <div style="height:3px;background:#ddd;border-radius:2px;"></div>
+              <div style="height:3px;background:#ddd;border-radius:2px;width:55%;"></div>
+            </div>
+          </div>
+          <span class="tpl-name">Classic</span>
+          <span class="tpl-desc">Sidebar · 2 Spalten</span>
+        </button>
+        <button class="tpl-card" onclick="selectTemplate('modern',this)">
+          <div class="tpl-preview" style="flex-direction:column;">
+            <div style="height:18px;background:var(--g-muted);width:100%;flex-shrink:0;"></div>
+            <div style="flex:1;padding:4px 5px;display:flex;flex-direction:column;gap:3px;">
+              <div style="height:3px;background:#ddd;border-radius:2px;"></div>
+              <div style="height:3px;background:#ddd;border-radius:2px;width:70%;"></div>
+            </div>
+          </div>
+          <span class="tpl-name">Modern</span>
+          <span class="tpl-desc">Header · 1 Spalte · ATS ✓</span>
+        </button>
+        <button class="tpl-card" onclick="selectTemplate('minimal',this)">
+          <div class="tpl-preview" style="flex-direction:column;">
+            <div style="height:4px;background:var(--g-muted);width:100%;flex-shrink:0;margin-bottom:3px;"></div>
+            <div style="flex:1;padding:2px 5px;display:flex;flex-direction:column;gap:3px;">
+              <div style="height:5px;background:#aaa;border-radius:2px;width:60%;"></div>
+              <div style="height:3px;background:#ddd;border-radius:2px;"></div>
+              <div style="height:3px;background:#ddd;border-radius:2px;width:50%;"></div>
+            </div>
+          </div>
+          <span class="tpl-name">Minimal</span>
+          <span class="tpl-desc">Clean · 1 Spalte · ATS ✓✓</span>
+        </button>
+        <button class="tpl-card" onclick="selectTemplate('berlin',this)">
+          <div class="tpl-preview" style="flex-direction:column;">
+            <div style="height:14px;background:linear-gradient(90deg,var(--g-muted),var(--g-dark));width:100%;flex-shrink:0;"></div>
+            <div style="display:flex;flex:1;gap:2px;padding:3px 3px;">
+              <div style="flex:1;display:flex;flex-direction:column;gap:3px;border-right:1px solid #eee;padding-right:3px;"><div style="height:3px;background:#ddd;border-radius:2px;"></div><div style="height:3px;background:#ddd;border-radius:2px;width:65%;"></div></div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:3px;padding-left:2px;"><div style="height:3px;background:#ddd;border-radius:2px;"></div><div style="height:3px;background:#ddd;border-radius:2px;width:80%;"></div></div>
+            </div>
+          </div>
+          <span class="tpl-name">Berlin</span>
+          <span class="tpl-desc">Header + 2 Spalten</span>
+        </button>
+      </div>
+
       <div class="section-divider" data-i18n="sectionColor">Akzentfarbe</div>
       <div class="color-options" id="color-picker"></div>
       <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">

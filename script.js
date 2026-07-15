@@ -4,12 +4,21 @@
 
 let state = {
   color:'#3b4f3a', font:'Playfair Display', photoData:'',
+  template:'classic',
   page2Entries:[],
   exp:[], edu:[], skills:[], langs:[], extraquals:[],
   refs:[], certs:[], projects:[],
   savedExp:[], savedEdu:[], savedSkills:[], savedLangs:[], savedExtraQuals:[],
   savedRefs:[], savedCerts:[], savedProjects:[],
 };
+
+// ─── TEMPLATE SELECTOR ────────────────────────────
+function selectTemplate(name, btnEl) {
+  state.template = name;
+  document.querySelectorAll('.tpl-card').forEach(b => b.classList.remove('active'));
+  if (btnEl) btnEl.classList.add('active');
+  render();
+}
 
 let zoom=1;
 let expCount=0, eduCount=0, p2Count=0, eqCount=0, refCount=0, certCount=0, projCount=0;
@@ -1163,6 +1172,12 @@ function removePage2Entry(id){pushUndo('p2entry',{title:val('p2e-title-'+id),sub
 // ─── RENDER ─────────────────────────────────────
 function render(){
   const col=state.color, font=state.font;
+  // Template-Klasse auf cv-paper setzen
+  const tpl = (state && state.template) ? state.template : 'classic';
+  ['classic','modern','minimal','berlin'].forEach(t2 => {
+    document.getElementById('cv-paper')?.classList.toggle('tpl-' + t2, t2 === tpl);
+    document.getElementById('cv-paper-2')?.classList.toggle('tpl-' + t2, t2 === tpl);
+  });
   const colLight=lighten(col,0.55), colDark2=colLight2(col);
   const fScale=parseInt((document.getElementById('f-font-scale')||{}).value||'100')/100;
   const lineH=(document.getElementById('f-line-height')||{}).value||'1.75';
@@ -1436,11 +1451,101 @@ function render(){
   });
 
   const cvLeft=document.getElementById('cv-left');
-  cvLeft.style.backgroundColor=col; cvLeft.style.color='#fff'; cvLeft.innerHTML=leftHTML;
   const cvRight=document.getElementById('cv-right');
+  // cv-paper und Schrift: wird unten gesetzt
 
-  cvRight.innerHTML=rightHTML; cvRight.style.backgroundColor=rightBg;
-  document.getElementById('cv-paper').style.fontFamily='"Source Sans 3",sans-serif';
+  // ── TEMPLATE-SPEZIFISCHES RENDERING ─────────────────────────
+  if(tpl==='modern'){
+    // MODERN: Farbiger Header (volle Breite) + einspaltiger Inhalt darunter
+    cvLeft.style.backgroundColor='transparent'; cvLeft.style.color='inherit';
+    cvLeft.innerHTML=`<div class="tpl-modern-header" style="background:${col};color:#fff;padding:22px 28px 18px;display:flex;align-items:center;gap:20px;">
+      ${photoSrc||initials?`<div style="flex-shrink:0;">${avatarHTML}</div>`:''}
+      <div style="flex:1;min-width:0;">
+        <div style="font-family:${font};font-size:${Math.round(26*fScale)}px;font-weight:700;letter-spacing:-0.01em;">${h(name)}</div>
+        <div style="font-size:${Math.round(11.5*fScale)}px;margin:4px 0 10px;opacity:0.85;font-weight:500;">${h(role)}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px 16px;font-size:${Math.round(9.5*fScale)}px;opacity:0.9;">
+          ${email?`<span>✉ ${h(email)}</span>`:''}
+          ${phone?`<span>📱 ${h(phone)}</span>`:''}
+          ${address?`<span>📍 ${h(address)}</span>`:''}
+          ${linkedin?`<span>🔗 LinkedIn</span>`:''}
+        </div>
+      </div>
+    </div>`;
+    cvRight.style.backgroundColor='#fff';
+    cvRight.style.padding='1.5rem 2rem';
+    cvRight.innerHTML=rightHTML;
+    paper.style.display='block';
+    cvRight.style.display='block';
+    cvLeft.style.display='block';
+    cvLeft.style.width='100%';
+    cvRight.style.width='100%';
+
+  }else if(tpl==='minimal'){
+    // MINIMAL: Kein Sidebar, alles einspalt. Akzentlinie oben
+    cvLeft.style.display='none'; cvLeft.innerHTML='';
+    cvRight.style.display='block';
+    cvRight.style.width='100%';
+    cvRight.style.padding='2.5rem 3rem';
+    cvRight.style.backgroundColor='#fff';
+    // Header: Name + Trennlinie in Akzentfarbe
+    const contactLine=[email,phone,address,linkedin?'LinkedIn':''].filter(Boolean).join(' · ');
+    const minHeader=`<div style="border-top:4px solid ${col};padding-top:16px;margin-bottom:20px;">
+        <div style="font-family:${font};font-size:${Math.round(30*fScale)}px;font-weight:700;color:#111;letter-spacing:-0.02em;">${h(name)}</div>
+        <div style="font-size:${Math.round(12*fScale)}px;font-weight:600;color:${col};margin:5px 0 8px;">${h(role)}</div>
+        <div style="font-size:${Math.round(10*fScale)}px;color:#666;">${h(contactLine)}</div>
+      </div>`;
+    // Skills + Langs als kompakte Zeile im Minimal-Style
+    let skillsLine='';
+    if(activeSkills.length){const names=activeSkills.map(id=>val('sk-name-'+id)).filter(Boolean);if(names.length)skillsLine=`<div class="cv-section-head" style="color:${col};font-size:${Math.round(8.5*fScale)}px;">${t('cvSkills')}</div><div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px;">${names.map(n=>`<span style="background:${col}18;border:1px solid ${col}44;border-radius:4px;padding:2px 9px;font-size:${Math.round(10*fScale)}px;font-weight:600;color:${col};">${h(n)}</span>`).join('')}</div>`;}
+    if(activeLangs.length){const langNames=activeLangs.map(id=>{const n=val('ln-name-'+id),lv=val('ln-lvl-'+id);const lbl={native:t('optNative'),advanced:t('optAdvanced'),intermediate:t('optIntermediate'),basic:t('optBasic')}[lv]||lv;return n+(lbl?` (${lbl})`:'')}); skillsLine+=`<div style="font-size:${Math.round(10.5*fScale)}px;color:#555;margin-bottom:12px;">${t('cvLanguages')}: ${h(langNames.join(' · '))}</div>`;}
+    cvRight.innerHTML=minHeader+skillsLine+rightHTML;
+    paper.style.display='block';
+
+  }else if(tpl==='berlin'){
+    // BERLIN: Farbiger Header + darunter 2 gleiche Spalten (kein Sidebar-Farbproblem)
+    cvLeft.style.display='table-cell'; cvLeft.style.width='50%';
+    cvLeft.style.backgroundColor='transparent'; cvLeft.style.color='#222';
+    cvLeft.style.padding='1.25rem 1.25rem 1.5rem 1.75rem';
+    cvLeft.style.borderRight=`1px solid ${col}22`;
+    cvLeft.style.verticalAlign='top';
+    cvRight.style.display='table-cell'; cvRight.style.width='50%';
+    cvRight.style.padding='1.25rem 1.75rem 1.5rem 1.25rem';
+    cvRight.style.backgroundColor='#fff';
+    paper.style.display='block';
+    // Header-Band
+    const berlinHeaderEl=paper.querySelector('.tpl-berlin-band')||document.createElement('div');
+    berlinHeaderEl.className='tpl-berlin-band';
+    berlinHeaderEl.style.cssText=`background:${col};color:#fff;padding:20px 28px;display:flex;align-items:center;gap:18px;width:100%;box-sizing:border-box;`;
+    berlinHeaderEl.innerHTML=`${photoSrc||initials?`<div style="flex-shrink:0;">${avatarHTML}</div>`:''}
+      <div><div style="font-family:${font};font-size:${Math.round(24*fScale)}px;font-weight:700;">${h(name)}</div>
+      <div style="font-size:${Math.round(11*fScale)}px;opacity:0.85;margin-top:4px;">${h(role)}</div></div>`;
+    if(!paper.querySelector('.tpl-berlin-band')) paper.insertBefore(berlinHeaderEl, paper.firstChild);
+    else paper.replaceChild(berlinHeaderEl, paper.querySelector('.tpl-berlin-band'));
+    // Linke Spalte: Kontakt, Skills, Sprachen
+    cvLeft.innerHTML=`<div style="font-size:8.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:${col};padding-bottom:5px;border-bottom:1.5px solid ${col}33;margin-bottom:10px;">${t('cvContact')}</div>
+      ${email?`<div style="font-size:${Math.round(10.5*fScale)}px;color:#555;margin-bottom:6px;"><span style="font-size:8.5px;font-weight:700;color:#888;display:block;">${t('cvEmail')}</span>${h(email)}</div>`:''}
+      ${phone?`<div style="font-size:${Math.round(10.5*fScale)}px;color:#555;margin-bottom:6px;"><span style="font-size:8.5px;font-weight:700;color:#888;display:block;">${t('cvPhone')}</span>${h(phone)}</div>`:''}
+      ${address?`<div style="font-size:${Math.round(10.5*fScale)}px;color:#555;margin-bottom:12px;"><span style="font-size:8.5px;font-weight:700;color:#888;display:block;">${t('cvAddress')||'Adresse'}</span>${h(address)}</div>`:''}
+      ${activeSkills.length?`<div style="font-size:8.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:${col};padding-bottom:5px;border-bottom:1.5px solid ${col}33;margin:14px 0 10px;">${t('cvSkills')}</div>${activeSkills.map(id=>{const n=val('sk-name-'+id),p=Math.min(100,Math.max(0,parseInt(val('sk-pct-'+id))||70));return`<div style="margin-bottom:7px;"><div style="font-size:${Math.round(10.5*fScale)}px;font-weight:600;color:#333;">${h(n)}</div><div style="height:4px;background:#eee;border-radius:2px;margin-top:3px;"><div style="height:100%;width:${p}%;background:${col};border-radius:2px;"></div></div></div>`;}).join('')}`:''}
+      ${activeLangs.length?`<div style="font-size:8.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:${col};padding-bottom:5px;border-bottom:1.5px solid ${col}33;margin:14px 0 10px;">${t('cvLanguages')}</div>${activeLangs.map(id=>{const n=val('ln-name-'+id),lv=val('ln-lvl-'+id);const lbl={native:t('optNative'),advanced:t('optAdvanced'),intermediate:t('optIntermediate'),basic:t('optBasic')}[lv]||lv;return`<div style="margin-bottom:8px;"><div style="font-size:${Math.round(11*fScale)}px;font-weight:600;color:#222;">${h(n)}</div><div style="font-size:${Math.round(9.5*fScale)}px;color:#777;">${lbl}</div></div>`;}).join('')}`:''}`;
+    cvRight.innerHTML=rightHTML;
+    cvRight.style.display='table-cell';
+    cvLeft.style.display='table-cell';
+
+  }else{
+    // CLASSIC (default): bestehender Code
+    cvLeft.style.backgroundColor=col; cvLeft.style.color='#fff';
+    cvLeft.style.display=''; cvLeft.style.width='';
+    cvLeft.style.padding=''; cvLeft.style.borderRight='';
+    cvRight.style.display=''; cvRight.style.width='';
+    cvRight.style.padding=''; cvRight.style.backgroundColor=rightBg;
+    paper.style.display='';
+    // Berlin-Band entfernen falls vorhanden
+    const oldBand=paper.querySelector('.tpl-berlin-band');
+    if(oldBand) oldBand.remove();
+    cvLeft.innerHTML=leftHTML;
+    cvRight.innerHTML=rightHTML;
+  }
 
   // PAGE 2
   const p2Title=val('p2-title'),p2Free=val('p2-freetext');
