@@ -23,6 +23,7 @@ function selectTemplate(name, btnEl) {
 let zoom=1;
 let expCount=0, eduCount=0, p2Count=0, eqCount=0, refCount=0, certCount=0, projCount=0;
 let undoStack=[];
+let _autoPageBreakRAF = null; // Modul-weiter RAF-Handle — verhindert überlappende autoPageBreak-Aufrufe
 let sectionOrder=['profile','experience','education','komps','hobbies','extraquals','referenzen','zertifikate','projekte','folio'];
 let autoSaveTimer=null;
 let dragSrcId=null, dragType=null;
@@ -1561,7 +1562,142 @@ function render(){
     const l2=document.getElementById('cv-left-2'); l2.style.backgroundColor=col;l2.style.color='#fff';l2.innerHTML=left2;
     document.getElementById('cv-right-2').innerHTML=right2; paper2.style.fontFamily='"Source Sans 3",sans-serif';
   }
+
   updateProgress(); if(typeof updateATSScore==="function") updateATSScore();
+
+  // ── AUTO-SEITENUMBRUCH (nur 1× pro Render-Zyklus) ──────────
+  if (_autoPageBreakRAF) cancelAnimationFrame(_autoPageBreakRAF);
+  _autoPageBreakRAF = requestAnimationFrame(() => {
+    _autoPageBreakRAF = null;
+    autoPageBreak(fScale, col, font, name, role);
+  });
+}
+
+// ─── AUTOMATISCHER SEITENUMBRUCH ─────────────────────────────
+// Nutzt getBoundingClientRect für präzise Positions-Messung
+// unabhängig vom display:table-cell Layout
+function autoPageBreak(fScaleArg, col, font, name, role) {
+  const cvRight = document.getElementById('cv-right');
+  const cvLeft  = document.getElementById('cv-left');
+  const paper   = document.getElementById('cv-paper');
+  const paper2  = document.getElementById('cv-paper-2');
+  if (!cvRight || !paper2 || !paper) return;
+
+  // Oberkante des Papers im Viewport (Referenzpunkt für alle Messungen)
+  const paperTop    = paper.getBoundingClientRect().top;
+  // Dynamischer Threshold: 90% der linken Spalte = sauberer Split vor Seitenende
+  const leftH     = cvLeft ? cvLeft.getBoundingClientRect().height : 1050;
+  const PAGE_HEIGHT = Math.round(leftH * 0.88); // 88% der Seitenhöhe = Seitenumbruch-Punkt
+
+  // Alle Kinder von cv-right mit ihrer echten Untergrenze
+  const children = Array.from(cvRight.children);
+  if (!children.length) return;
+
+  let splitIndex = -1;
+  for (let i = 0; i < children.length; i++) {
+    const childBottom = children[i].getBoundingClientRect().bottom - paperTop;
+    if (childBottom > PAGE_HEIGHT && splitIndex === -1) {
+      // An Sektionsgrenzen trennen (Überschrift auf Seite 2 mitnehmen)
+      for (let j = i; j >= 1; j--) {
+        if (children[j].classList.contains('cv-section-title') ||
+            children[j].classList.contains('cv-section-head')) {
+          splitIndex = j;
+          break;
+        }
+      }
+      if (splitIndex === -1) splitIndex = Math.max(1, i);
+      break;
+    }
+  }
+
+  // Manuelle Seite-2-Inhalte
+  const p2Free   = val('p2-freetext');
+  const p2Manual = val('p2-title') || p2Free || (state.page2Entries && state.page2Entries.length > 0);
+
+  if (splitIndex <= 0 && !p2Manual) {
+    // Alles passt auf Seite 1 — Seite 2 ausblenden (falls durch Vorher-Render sichtbar)
+    if (!p2Manual) paper2.style.display = 'none';
+    return;
+  }
+  if (splitIndex <= 0) return; // Nur manuelle Seite-2-Inhalte — normaler render() genügt
+
+  // ── ELEMENTE AUFTEILEN ───────────────────────────────────
+  const overflowKids = children.slice(splitIndex);
+  overflowKids.forEach(el => cvRight.removeChild(el));
+
+  // ── SEITE 2 LINKE SPALTE (Sidebar-Fortsetzung) ──────────
+  const colDark2 = typeof lighten === 'function' ? lighten(col, 0.3) : col;
+  const fS = fScaleArg || 1;
+
+  const l2 = document.getElementById('cv-left-2');
+  if (l2) {
+    l2.style.backgroundColor = col;
+    l2.style.color = '#fff';
+    l2.style.display = 'table-cell';
+    l2.style.verticalAlign = 'top';
+    l2.style.width = (cvLeft ? cvLeft.offsetWidth : 240) + 'px';
+    l2.style.padding = '2rem 1.25rem';
+    l2.innerHTML = `
+      <div style="width:36px;height:36px;border-radius:50%;
+        background:rgba(255,255,255,0.12);
+        display:flex;align-items:center;justify-content:center;
+        font-size:14px;font-weight:700;color:#fff;
+        border:1.5px solid rgba(255,255,255,0.25);
+        margin:0 auto 14px;">2</div>
+      <div style="font-size:11.5px;font-weight:700;text-align:center;
+        line-height:1.3;word-break:break-word;margin-bottom:4px;
+        opacity:0.9;">${h(name||'')}</div>
+      <div style="font-size:8.5px;opacity:0.55;text-align:center;
+        margin-bottom:1.75rem;">${h(role||'')}</div>
+      <div style="font-size:7px;opacity:0.3;font-weight:700;
+        text-transform:uppercase;letter-spacing:0.12em;
+        border-top:1px solid rgba(255,255,255,0.1);
+        padding-top:8px;text-align:center;">Fortsetzung</div>`;
+  }
+
+  // ── SEITE 2 RECHTE SPALTE ────────────────────────────────
+  const r2 = document.getElementById('cv-right-2');
+  if (r2) {
+    // Dünne Akzent-Linie als visuellen Seitenstart-Indikator
+    const accentLine = `<div style="height:1.5px;margin-bottom:1.5rem;border-radius:1px;
+      background:linear-gradient(90deg,${col},${colDark2} 55%,transparent 100%);"></div>`;
+
+    const overflowHTML = overflowKids.map(el => el.outerHTML).join('');
+
+    // Optionale manuelle Einträge aus dem Seite-2-Tab
+    const p2Entries = (state.page2Entries || [])
+      .map(id => ({
+        title: val('p2e-title-'+id),
+        sub:   val('p2e-sub-'+id),
+        desc:  val('p2e-desc-'+id),
+      }))
+      .filter(e => e.title || e.desc);
+
+    const manualHTML = p2Entries.map(e => `
+      <div class="cv-entry" style="border-left-color:${colDark2};margin-bottom:12px;">
+        <div class="cv-entry-head">
+          <span class="cv-entry-title">${h(e.title||'')}</span>
+        </div>
+        ${e.sub  ? `<div class="cv-entry-sub" style="color:${colDark2};">${h(e.sub)}</div>` : ''}
+        ${e.desc ? `<div class="cv-entry-desc">${h(e.desc).replace(/\n/g,'<br>')}</div>` : ''}
+      </div>`).join('');
+
+    const freeHTML = p2Free
+      ? `<div style="font-size:${Math.round(11*fS)}px;color:#555;
+          line-height:1.65;margin-top:1rem;">${h(p2Free).replace(/\n/g,'<br>')}</div>`
+      : '';
+
+    r2.innerHTML            = accentLine + overflowHTML + manualHTML + freeHTML;
+    r2.style.display        = 'table-cell';
+    r2.style.verticalAlign  = 'top';
+    r2.style.backgroundColor = '#fff';
+    r2.style.padding        = '2rem';
+  }
+
+  // Seite 2 aktivieren
+  paper2.style.display    = 'table';
+  paper2.style.marginTop  = '2rem';
+  paper2.style.fontFamily = '"Source Sans 3",sans-serif';
 }
 
 // ─── HELPERS ─────────────────────────────────────
