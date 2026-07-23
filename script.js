@@ -1251,10 +1251,18 @@ function render(){
   const activeLangs=state.langs.filter(id=>val('ln-name-'+id));
   if(activeLangs.length){
     leftHTML+=`<div class="cv-l-section"><div class="cv-l-section-title">${t('cvLanguages')}</div>`;
+    const langMode=document.getElementById('lang-display-mode')?.value||'dots';
     activeLangs.forEach(id=>{const n=val('ln-name-'+id),lv=val('ln-lvl-'+id);
       const dotsMap={native:5,advanced:4,intermediate:3,basic:2,Muttersprache:5,Fortgeschritten:4,Mittelstufe:3,Grundkenntnisse:2};
       const dots=dotsMap[lv]||3;
-      const lvLabel={native:t('optNative'),advanced:t('optAdvanced'),intermediate:t('optIntermediate'),basic:t('optBasic'),Muttersprache:t('optNative'),Fortgeschritten:t('optAdvanced'),Mittelstufe:t('optIntermediate'),Grundkenntnisse:t('optBasic')}[lv]||lv;let dotHtml='';for(let i=0;i<5;i++)dotHtml+=`<div class="cv-lang-dot${i<dots?' on':''}"></div>`;leftHTML+=`<div class="cv-lang-item"><div class="cv-lang-name" style="font-size:${Math.round(11*fScale)}px;">${h(n)}</div><div class="cv-lang-sub">${lvLabel}</div><div class="cv-lang-dots">${dotHtml}</div></div>`;});
+      const lvLabel={native:t('optNative'),advanced:t('optAdvanced'),intermediate:t('optIntermediate'),basic:t('optBasic'),Muttersprache:t('optNative'),Fortgeschritten:t('optAdvanced'),Mittelstufe:t('optIntermediate'),Grundkenntnisse:t('optBasic')}[lv]||lv;
+      if(langMode==='text'){
+        leftHTML+=`<div class="cv-lang-item cv-lang-text-mode"><div class="cv-lang-name" style="font-size:${Math.round(11*fScale)}px;">${h(n)}</div><div class="cv-lang-level-text" style="font-size:${Math.round(9.5*fScale)}px;">${lvLabel}</div></div>`;
+      }else{
+        let dotHtml='';for(let i=0;i<5;i++)dotHtml+=`<div class="cv-lang-dot${i<dots?' on':''}"></div>`;
+        leftHTML+=`<div class="cv-lang-item"><div class="cv-lang-name" style="font-size:${Math.round(11*fScale)}px;">${h(n)}</div><div class="cv-lang-sub">${lvLabel}</div><div class="cv-lang-dots">${dotHtml}</div></div>`;
+      }
+    });
     leftHTML+=`</div>`;
   }
 

@@ -357,7 +357,28 @@
       <div id="skill-list"></div>
       <button class="btn-add" onclick="addSkill()" data-i18n="btnAddSkill">+ Skill hinzufügen</button>
 
-      <div class="section-divider" style="margin-top:1.5rem;" data-i18n="sectionLanguages">Sprachen</div>
+      <div class="skill-display-toggle-wrap" style="margin-top:1.5rem;">
+        <span class="sdtw-label">Sprachen-Darstellung auf dem CV:</span>
+        <div class="sdtw-options">
+          <label class="sdtw-opt">
+            <input type="radio" name="langDisplay" value="dots"
+              checked onchange="document.getElementById('lang-display-mode').value='dots'; render();">
+            <span class="sdtw-icon">●●●○○</span> Punkte
+          </label>
+          <label class="sdtw-opt sdtw-ats">
+            <input type="radio" name="langDisplay" value="text"
+              onchange="document.getElementById('lang-display-mode').value='text'; render();">
+            <span class="sdtw-icon">Aa</span> Nur Text-Level
+            <span class="sdtw-badge">ATS ✓</span>
+          </label>
+        </div>
+        <input type="hidden" id="lang-display-mode" value="dots">
+        <div class="sdtw-hint">
+          <strong>ATS-Tipp:</strong> Punkte-Grafiken werden von Bewerbersystemen nicht gelesen.
+          Text-Level (z. B. "Fortgeschritten") ist ATS-kompatibel.
+        </div>
+      </div>
+      <div class="section-divider" data-i18n="sectionLanguages">Sprachen</div>
       <div id="lang-list"></div>
       <button class="btn-add" onclick="addLang()" data-i18n="btnAddLang">+ Sprache hinzufügen</button>
 

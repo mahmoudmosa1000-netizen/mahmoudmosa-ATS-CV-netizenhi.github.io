@@ -2151,3 +2151,20 @@ select:focus {
 .cv-paper.tpl-berlin { display: block !important; }
 .cv-paper.tpl-berlin .cv-left,
 .cv-paper.tpl-berlin .cv-right { display: table-cell !important; }
+
+/* ── CV Preview: Sprachen Text-Level Modus (analog zu Skills) ── */
+.cv-lang-text-mode {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+  border-bottom: 1px dotted rgba(255,255,255,0.15);
+}
+.cv-lang-level-text {
+  font-weight: 600;
+  opacity: 0.75;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
