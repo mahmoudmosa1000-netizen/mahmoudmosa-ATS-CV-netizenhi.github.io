@@ -1507,7 +1507,7 @@ function render(){
     let skillsLine='';
     if(activeSkills.length){const names=activeSkills.map(id=>val('sk-name-'+id)).filter(Boolean);if(names.length)skillsLine=`<div class="cv-section-head" style="color:${col};font-size:${Math.round(8.5*fScale)}px;">${t('cvSkills')}</div><div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px;">${names.map(n=>`<span style="background:${col}18;border:1px solid ${col}44;border-radius:4px;padding:2px 9px;font-size:${Math.round(10*fScale)}px;font-weight:600;color:${col};">${h(n)}</span>`).join('')}</div>`;}
     if(activeLangs.length){const langNames=activeLangs.map(id=>{const n=val('ln-name-'+id),lv=val('ln-lvl-'+id);const lbl={native:t('optNative'),advanced:t('optAdvanced'),intermediate:t('optIntermediate'),basic:t('optBasic')}[lv]||lv;return n+(lbl?` (${lbl})`:'')}); skillsLine+=`<div style="font-size:${Math.round(10.5*fScale)}px;color:#555;margin-bottom:12px;">${t('cvLanguages')}: ${h(langNames.join(' · '))}</div>`;}
-    cvRight.innerHTML=minHeader+skillsLine+rightHTML;
+    cvRight.innerHTML=minHeader+rightHTML+skillsLine;
     paper.style.display='block';
 
   }else if(tpl==='berlin'){
@@ -1592,10 +1592,15 @@ function autoPageBreak(fScaleArg, col, font, name, role) {
   if (!cvRight || !paper2 || !paper) return;
 
   // Oberkante des Papers im Viewport (Referenzpunkt für alle Messungen)
-  const paperTop    = paper.getBoundingClientRect().top;
-  // Dynamischer Threshold: 90% der linken Spalte = sauberer Split vor Seitenende
-  const leftH     = cvLeft ? cvLeft.getBoundingClientRect().height : 1050;
-  const PAGE_HEIGHT = Math.round(leftH * 0.88); // 88% der Seitenhöhe = Seitenumbruch-Punkt
+  const paperTop = paper.getBoundingClientRect().top;
+
+  // Fester Seitenhöhen-Schwellenwert (A4-Seiteninhalt ≈ 1050px minus Puffer).
+  // WICHTIG: Nicht von cv-left ableiten — bei Modern/Minimal/Berlin hat die
+  // linke Spalte eine völlig andere Höhe (Header-Band, ausgeblendet, etc.),
+  // was den Threshold auf ~0 kollabieren und fast den gesamten Inhalt fälschlich
+  // auf "Seite 2" verschieben würde (siehe Bug: Modern/Minimal zeigten fast nichts).
+  const tplNow = state.template || 'classic';
+  const PAGE_HEIGHT = 970; // knapp unter 1050px min-height, sicherer Puffer für alle Templates
 
   // Alle Kinder von cv-right mit ihrer echten Untergrenze
   const children = Array.from(cvRight.children);

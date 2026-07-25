@@ -2136,21 +2136,26 @@ select:focus {
 .tpl-name { font-size: 12px; font-weight: 700; color: var(--ink); }
 .tpl-desc { font-size: 9.5px; color: var(--ink-faint); text-align: center; }
 
-/* ── Minimal: kein Sidebar ── */
-.cv-paper.tpl-minimal .cv-left { display: none !important; }
-.cv-paper.tpl-minimal .cv-right { width: 100% !important; }
+/* WICHTIG: Diese Regeln gelten NUR für Seite 1 (#cv-paper), NICHT für Seite 2
+   (#cv-paper-2) — beide tragen zwar dieselbe .tpl-X Klasse, aber Seite 2s
+   Sichtbarkeit (display:none/table) wird komplett per JS in autoPageBreak()
+   gesteuert. Ein !important auf der gemeinsamen .cv-paper Klasse hat vorher
+   Seite 2 IMMER sichtbar erzwungen, selbst ohne Inhaltsüberlauf (Bug-Fix).
+   ── Minimal: kein Sidebar ── */
+#cv-paper.tpl-minimal .cv-left { display: none !important; }
+#cv-paper.tpl-minimal .cv-right { width: 100% !important; }
 
-/* ── Modern/Berlin: block statt table ── */
-.cv-paper.tpl-modern,
-.cv-paper.tpl-minimal { display: block !important; }
-.cv-paper.tpl-modern .cv-left,
-.cv-paper.tpl-modern .cv-right { display: block !important; width: 100% !important; }
+/* ── Modern/Minimal: block statt table ── */
+#cv-paper.tpl-modern,
+#cv-paper.tpl-minimal { display: block !important; }
+#cv-paper.tpl-modern .cv-left,
+#cv-paper.tpl-modern .cv-right { display: block !important; width: 100% !important; }
 
 /* Berlin Header-Band */
 .tpl-berlin-band { display: block !important; }
-.cv-paper.tpl-berlin { display: block !important; }
-.cv-paper.tpl-berlin .cv-left,
-.cv-paper.tpl-berlin .cv-right { display: table-cell !important; }
+#cv-paper.tpl-berlin { display: block !important; }
+#cv-paper.tpl-berlin .cv-left,
+#cv-paper.tpl-berlin .cv-right { display: table-cell !important; }
 
 /* ── CV Preview: Sprachen Text-Level Modus (analog zu Skills) ── */
 .cv-lang-text-mode {
