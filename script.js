@@ -1270,11 +1270,15 @@ function render(){
   const webLink=web?`<a href="${webHref}" target="_blank" style="color:${col};text-decoration:underline;font-weight:700;">${h(webLabel)}</a>`:h(webLabel);
   const renderTxt=txt=>h(txt).replace(/%%WEBSITE%%/g,webLink);
 
-  // RIGHT header
-  let rightHTML=`
+  // RIGHT header — NUR bei Classic (Modern/Minimal/Berlin haben ihren
+  // eigenen Header mit Name+Rolle bereits weiter oben — sonst Duplikat!)
+  let rightHTML='';
+  if (tpl === 'classic') {
+    rightHTML=`
     <div class="cv-r-name" style="font-family:${font};font-size:${Math.round(28*fScale)}px;">${h(name)}</div>
     <div class="cv-r-role" style="color:${colDark2};font-size:${Math.round(12*fScale)}px;">${h(role)}</div>
     <div class="cv-divider" style="background:linear-gradient(90deg,${col} 0%,${colLight} 60%,transparent 100%);"></div>`;
+  }
 
   // Section renderers
   const renderers={
@@ -1562,13 +1566,30 @@ function render(){
   const hasPage2=p2Title||p2Free||p2Entries.length>0;
   const paper2=document.getElementById('cv-paper-2'); paper2.style.display=hasPage2?'table':'none';
   if(hasPage2){
-    let left2=`<div style="display:flex;justify-content:center;margin-bottom:1.5rem;"><div style="width:48px;height:48px;border-radius:50%;background:${colLight};display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;border:3px solid rgba(255,255,255,0.3);">${t('page2Circle')}</div></div><div style="text-align:center;font-weight:700;font-size:14px;margin-bottom:4px;">${h(name)}</div><div style="text-align:center;font-size:9px;opacity:0.6;margin-bottom:2rem;">${h(role)}</div><div style="font-size:8.5px;font-weight:700;opacity:0.55;border-bottom:1px solid rgba(255,255,255,0.12);padding-bottom:5px;margin-bottom:12px;">${t('cvContact')}</div>${email?`<div style="margin-bottom:8px;"><span style="font-size:8.5px;font-weight:700;opacity:0.5;display:block;">${t('cvEmail')}</span><span style="font-size:11px;opacity:.85;">${h(email)}</span></div>`:''}${phone?`<div style="margin-bottom:8px;"><span style="font-size:8.5px;font-weight:700;opacity:0.5;display:block;">${t('cvPhone')}</span><span style="font-size:11px;opacity:.85;">${h(phone)}</span></div>`:''}${web?(()=>{const wh=web.startsWith('http')?web:'https://'+web;return`<div style="margin-bottom:8px;"><span style="font-size:8.5px;font-weight:700;opacity:0.5;display:block;">${t('cvWeb')}</span><a href="${wh}" target="_blank" style="font-size:11px;color:inherit;text-decoration:underline;font-weight:700;">${h(webLabel)}</a></div>`;})():''}`;
-    let right2=`<div style="font-size:${Math.round(22*fScale)}px;font-weight:700;color:#1e2e1d;margin-bottom:4px;font-family:${font};">${h(name)}</div><div style="font-size:${Math.round(11*fScale)}px;color:${colDark2};margin-bottom:12px;font-weight:500;">${h(role)}</div><div style="height:2px;margin-bottom:1.25rem;border-radius:1px;background:linear-gradient(90deg,${col} 0%,${colLight} 60%,transparent 100%);"></div>`;
+    let left2, showLeft2Sidebar;
+    if (tpl === 'minimal') {
+      // Minimal hat auf Seite 1 keine Sidebar — Seite 2 konsequent genauso
+      showLeft2Sidebar = false;
+      left2 = '';
+    } else {
+      // Classic/Modern/Berlin: kompakte Fortsetzungs-Sidebar (bewusst schlicht
+      // gehalten, damit KEINE zweite große Kopie von Avatar+Kontakt entsteht)
+      showLeft2Sidebar = true;
+      left2=`<div style="display:flex;justify-content:center;margin-bottom:1.5rem;"><div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;border:2px solid rgba(255,255,255,0.3);">${t('page2Circle')}</div></div><div style="text-align:center;font-weight:700;font-size:12.5px;margin-bottom:4px;">${h(name)}</div><div style="text-align:center;font-size:8.5px;opacity:0.6;margin-bottom:1.75rem;">${h(role)}</div><div style="font-size:7.5px;font-weight:700;opacity:0.4;text-transform:uppercase;letter-spacing:0.1em;border-top:1px solid rgba(255,255,255,0.12);padding-top:8px;text-align:center;">Fortsetzung</div>`;
+    }
+    let right2=`<div style="font-size:${Math.round(20*fScale)}px;font-weight:700;color:#1e2e1d;margin-bottom:4px;font-family:${font};">${h(name)}</div><div style="font-size:${Math.round(10.5*fScale)}px;color:${colDark2};margin-bottom:12px;font-weight:500;">${h(role)}</div><div style="height:1.5px;margin-bottom:1.25rem;border-radius:1px;background:linear-gradient(90deg,${col} 0%,${colLight} 60%,transparent 100%);"></div>`;
     if(p2Title) right2+=`<div class="cv-section-head" style="color:${col};">${h(p2Title)}</div>`;
     p2Entries.forEach(e=>{right2+=`<div class="cv-entry" style="border-left-color:${colLight};margin-bottom:12px;"><div class="cv-entry-head"><span class="cv-entry-title">${h(e.title)}</span></div>${e.sub?`<div class="cv-entry-sub" style="color:${colDark2};">${h(e.sub)}</div>`:''} ${e.desc?`<div class="cv-entry-desc">${h(e.desc).replace(/\n/g,'<br>')}</div>`:''}</div>`;});
     if(p2Free) right2+=`<div style="font-size:${Math.round(11*fScale)}px;color:#555;line-height:${lineH};margin-top:1rem;">${h(p2Free).replace(/\n/g,'<br>')}</div>`;
-    const l2=document.getElementById('cv-left-2'); l2.style.backgroundColor=col;l2.style.color='#fff';l2.innerHTML=left2;
-    document.getElementById('cv-right-2').innerHTML=right2; paper2.style.fontFamily='"Source Sans 3",sans-serif';
+    const l2=document.getElementById('cv-left-2');
+    if (showLeft2Sidebar) {
+      l2.style.display='table-cell'; l2.style.backgroundColor=col; l2.style.color='#fff'; l2.innerHTML=left2;
+    } else {
+      l2.style.display='none'; l2.innerHTML='';
+    }
+    const r2el=document.getElementById('cv-right-2');
+    r2el.innerHTML=right2; r2el.style.width = showLeft2Sidebar ? '' : '100%';
+    paper2.style.fontFamily='"Source Sans 3",sans-serif';
   }
 
   updateProgress(); if(typeof updateATSScore==="function") updateATSScore();
@@ -1643,7 +1664,12 @@ function autoPageBreak(fScaleArg, col, font, name, role) {
   const fS = fScaleArg || 1;
 
   const l2 = document.getElementById('cv-left-2');
-  if (l2) {
+  const tplForP2 = state.template || 'classic';
+  if (l2 && tplForP2 === 'minimal') {
+    // Minimal hat auf Seite 1 keine Sidebar — Seite 2 konsequent genauso
+    l2.style.display = 'none';
+    l2.innerHTML = '';
+  } else if (l2) {
     l2.style.backgroundColor = col;
     l2.style.color = '#fff';
     l2.style.display = 'table-cell';
@@ -1705,6 +1731,7 @@ function autoPageBreak(fScaleArg, col, font, name, role) {
     r2.style.verticalAlign  = 'top';
     r2.style.backgroundColor = '#fff';
     r2.style.padding        = '2rem';
+    r2.style.width          = (tplForP2 === 'minimal') ? '100%' : '';
   }
 
   // Seite 2 aktivieren
