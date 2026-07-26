@@ -1631,9 +1631,23 @@ function fillPageSpacing() {
     if (el.dataset.fillExtra) { el.style.marginBottom = ''; el.style.marginTop = ''; delete el.dataset.fillExtra; }
   });
 
+  // Skalierungs-Fix: siehe ausführlichen Kommentar in autoPageBreak() —
+  // #cv-paper kann per Zoom-Regler oder mobiler Auto-Anpassung skaliert
+  // sein; gemessene Pixel müssen auf "echte" (unskalierte) Werte zurück-
+  // gerechnet werden, sonst füllt diese Funktion bei Zoom ≠ 100% falsch auf.
+  const paper = document.getElementById('cv-paper');
+  let paperScale = 1;
+  if (paper) {
+    const _transform = window.getComputedStyle(paper).transform;
+    if (_transform && _transform !== 'none') {
+      const _m = _transform.match(/^matrix\(([^,]+),/);
+      if (_m) { const _s = parseFloat(_m[1]); if (_s > 0) paperScale = _s; }
+    }
+  }
+
   const paperTop   = cvRight.getBoundingClientRect().top;
   const lastChild  = children[children.length - 1];
-  const contentEnd = lastChild.getBoundingClientRect().bottom - paperTop;
+  const contentEnd = (lastChild.getBoundingClientRect().bottom - paperTop) / paperScale;
 
   const PAGE_BUDGET = 940; // etwas unter dem 970px Seitenumbruch-Schwellenwert
   const leftover    = PAGE_BUDGET - contentEnd;
@@ -1682,6 +1696,27 @@ function autoPageBreak(fScaleArg, col, font, name, role) {
   // Oberkante des Papers im Viewport (Referenzpunkt für alle Messungen)
   const paperTop = paper.getBoundingClientRect().top;
 
+  // ── SKALIERUNGS-FIX ──────────────────────────────────────
+  // #cv-paper wird per CSS transform: scale(...) skaliert — sowohl durch den
+  // manuellen Zoom-Regler (− 100% +) als auch durch autoFitMobilePreview auf
+  // schmalen Bildschirmen. getBoundingClientRect() liefert IMMER die
+  // tatsächlich gerenderten (bereits skalierten) Bildschirm-Pixel.
+  // PAGE_HEIGHT ist aber für zoom=100% kalibriert. Ohne Korrektur wird bei
+  // jedem Zoom ≠ 100% viel zu früh (Zoom > 100%) oder viel zu spät
+  // (Zoom < 100%) umgebrochen — Bug: Seite 1 nur halb gefüllt, kompletter
+  // Rest auf Seite 2. Daher hier den echten, aktuell angewendeten
+  // Skalierungsfaktor aus der berechneten Transform-Matrix auslesen und die
+  // gemessenen Pixel wieder auf "echte" (unskalierte) Werte zurückrechnen.
+  let paperScale = 1;
+  const _transform = window.getComputedStyle(paper).transform;
+  if (_transform && _transform !== 'none') {
+    const _m = _transform.match(/^matrix\(([^,]+),/);
+    if (_m) {
+      const _s = parseFloat(_m[1]);
+      if (_s > 0) paperScale = _s;
+    }
+  }
+
   // Fester Seitenhöhen-Schwellenwert (A4-Seiteninhalt ≈ 1050px minus Puffer).
   // WICHTIG: Nicht von cv-left ableiten — bei Modern/Minimal/Berlin hat die
   // linke Spalte eine völlig andere Höhe (Header-Band, ausgeblendet, etc.),
@@ -1696,7 +1731,8 @@ function autoPageBreak(fScaleArg, col, font, name, role) {
 
   let splitIndex = -1;
   for (let i = 0; i < children.length; i++) {
-    const childBottom = children[i].getBoundingClientRect().bottom - paperTop;
+    // Gemessene (skalierte) Bildschirm-Pixel zurück auf reale Pixel umrechnen
+    const childBottom = (children[i].getBoundingClientRect().bottom - paperTop) / paperScale;
     if (childBottom > PAGE_HEIGHT && splitIndex === -1) {
       // An Sektionsgrenzen trennen (Überschrift auf Seite 2 mitnehmen)
       for (let j = i; j >= 1; j--) {
