@@ -1565,6 +1565,13 @@ function render(){
   const p2Entries=state.page2Entries.map(id=>({title:val('p2e-title-'+id),sub:val('p2e-sub-'+id),desc:val('p2e-desc-'+id)})).filter(e=>e.title||e.desc);
   const hasPage2=p2Title||p2Free||p2Entries.length>0;
   const paper2=document.getElementById('cv-paper-2'); paper2.style.display=hasPage2?'table':'none';
+  if(!hasPage2){
+    // Inhalt leeren, damit kein Text von einem vorherigen Zyklus/Template
+    // stehen bleibt (auch wenn display:none — vermeidet Duplikate bei
+    // Textauslesung, z.B. PDF-Export oder ATS-Prüfungen)
+    const staleR2=document.getElementById('cv-right-2'), staleL2=document.getElementById('cv-left-2');
+    if(staleR2) staleR2.innerHTML=''; if(staleL2) staleL2.innerHTML='';
+  }
   if(hasPage2){
     let left2, showLeft2Sidebar;
     if (tpl === 'minimal') {
@@ -1594,15 +1601,75 @@ function render(){
 
   updateProgress(); if(typeof updateATSScore==="function") updateATSScore();
 
-  // ── AUTO-SEITENUMBRUCH (nur 1× pro Render-Zyklus) ──────────
+  // ── AUTO-SEITENUMBRUCH + SEITENFÜLLUNG (nur 1× pro Render-Zyklus) ──
   if (_autoPageBreakRAF) cancelAnimationFrame(_autoPageBreakRAF);
   _autoPageBreakRAF = requestAnimationFrame(() => {
     _autoPageBreakRAF = null;
     autoPageBreak(fScale, col, font, name, role);
+    requestAnimationFrame(() => fillPageSpacing());
   });
 }
 
-// ─── AUTOMATISCHER SEITENUMBRUCH ─────────────────────────────
+// ─── SEITE BIS ZUM RAND FÜLLEN ────────────────────────────────
+// Verteilt übrigen Leerraum am Seitenende gleichmäßig als zusätzlichen
+// Abstand zwischen den Abschnitten — Schriftgröße bleibt unverändert
+// (ATS-sicher), aber kurze Lebensläufe wirken nicht mehr "abgeschnitten".
+function fillPageSpacing() {
+  const cvRight = document.getElementById('cv-right');
+  const paper2  = document.getElementById('cv-paper-2');
+  if (!cvRight) return;
+
+  // Nur füllen, wenn der Inhalt auf EINE Seite passt (kein Überlauf) —
+  // bei aktivem Seitenumbruch macht künstliches Strecken keinen Sinn.
+  if (paper2 && getComputedStyle(paper2).display !== 'none') return;
+
+  const children = Array.from(cvRight.children).filter(el => el.nodeType === 1);
+  if (children.length < 2) return;
+
+  // Zuvor gesetzte Extra-Abstände zurücksetzen (falls von vorherigem Zyklus)
+  children.forEach(el => {
+    if (el.dataset.fillExtra) { el.style.marginBottom = ''; el.style.marginTop = ''; delete el.dataset.fillExtra; }
+  });
+
+  const paperTop   = cvRight.getBoundingClientRect().top;
+  const lastChild  = children[children.length - 1];
+  const contentEnd = lastChild.getBoundingClientRect().bottom - paperTop;
+
+  const PAGE_BUDGET = 940; // etwas unter dem 970px Seitenumbruch-Schwellenwert
+  const leftover    = PAGE_BUDGET - contentEnd;
+
+  // Nur bei spürbarer Lücke aktiv werden (>30px), sonst unverändert lassen
+  if (leftover < 30) return;
+
+  // Extra-Abstand pro Zwischenraum: möglichst genau den Leerraum ausfüllen,
+  // nur nach oben begrenzt um absurd große Einzel-Lücken bei sehr wenigen
+  // Abschnitten (z.B. nur 2-3) zu vermeiden.
+  const gaps        = children.length - 1;
+  const maxPerGap    = 260;
+  const extraPerGap  = Math.min(maxPerGap, Math.round(leftover / gaps));
+
+  if (extraPerGap < 4) return; // zu wenig, um sichtbar etwas zu bringen
+
+  children.forEach((el, i) => {
+    if (i === children.length - 1) return; // letztes Element braucht keinen Abstand danach
+    const current = parseFloat(getComputedStyle(el).marginBottom) || 0;
+    el.style.marginBottom = (current + extraPerGap) + 'px';
+    el.dataset.fillExtra = '1';
+  });
+
+  // Falls trotz Cap noch spürbarer Rest übrig bleibt (sehr wenige Abschnitte),
+  // zusätzlich oberhalb des ersten Elements strecken statt Leerraum zu verschenken
+  const usedUp    = extraPerGap * gaps;
+  const remaining = leftover - usedUp;
+  if (remaining > 30 && children.length >= 1) {
+    const first = children[0];
+    const currentTop = parseFloat(getComputedStyle(first).marginTop) || 0;
+    first.style.marginTop = (currentTop + Math.min(remaining, 160)) + 'px';
+    first.dataset.fillExtra = '1';
+  }
+}
+
+
 // Nutzt getBoundingClientRect für präzise Positions-Messung
 // unabhängig vom display:table-cell Layout
 function autoPageBreak(fScaleArg, col, font, name, role) {
@@ -1649,8 +1716,15 @@ function autoPageBreak(fScaleArg, col, font, name, role) {
   const p2Manual = val('p2-title') || p2Free || (state.page2Entries && state.page2Entries.length > 0);
 
   if (splitIndex <= 0 && !p2Manual) {
-    // Alles passt auf Seite 1 — Seite 2 ausblenden (falls durch Vorher-Render sichtbar)
-    if (!p2Manual) paper2.style.display = 'none';
+    // Alles passt auf Seite 1 — Seite 2 ausblenden UND ihren Inhalt leeren
+    // (sonst bleibt Text von einem vorherigen Template-Wechsel/Render-Zyklus
+    // im DOM stehen, auch wenn display:none gesetzt ist — Bug: Duplikate
+    // beim Extrahieren von Text, z.B. für PDF-Export oder Prüfungen)
+    paper2.style.display = 'none';
+    const staleR2 = document.getElementById('cv-right-2');
+    const staleL2 = document.getElementById('cv-left-2');
+    if (staleR2) staleR2.innerHTML = '';
+    if (staleL2) staleL2.innerHTML = '';
     return;
   }
   if (splitIndex <= 0) return; // Nur manuelle Seite-2-Inhalte — normaler render() genügt
