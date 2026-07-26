@@ -2031,7 +2031,18 @@ function generateDesignPDFBytes(){
     const savedT=pages.map(p=>{const s=p.paper.style.transform;p.paper.style.transform='scale(1)';return s;});
     function offRel(el,anc){let x=0,y=0,cur=el;while(cur&&cur!==anc){x+=cur.offsetLeft;y+=cur.offsetTop;cur=cur.offsetParent;}return{x,y,w:el.offsetWidth,h:el.offsetHeight};}
     requestAnimationFrame(()=>requestAnimationFrame(()=>{
-      const heights=pages.map(p=>Math.max(p.paper.offsetHeight,p.left.scrollHeight,p.right.scrollHeight,1050));
+      // ── HÖHEN-FIX ────────────────────────────────────────────
+      // Nur Seite 1 bekommt eine Mindesthöhe von 1050px (damit der farbige
+      // Hintergrund immer eine volle A4-Seite ausfüllt, auch bei kurzem
+      // Inhalt). Folge-Seiten (Fortsetzung, meist deutlich kürzer) dürfen
+      // NICHT künstlich auf 1050px aufgebläht werden — sonst wird beim
+      // html2canvas-Screenshot viel Leerraum mitfotografiert, der beim
+      // Zuschneiden in A4-Seiten in eine zusätzliche, fast leere PDF-Seite
+      // überläuft (Bug: Seite 4 nahezu komplett leer).
+      const heights=pages.map((p,idx)=>{
+        const real = Math.max(p.paper.offsetHeight, p.left.scrollHeight, p.right.scrollHeight);
+        return idx===0 ? Math.max(real, 1050) : real;
+      });
       const{jsPDF}=window.jspdf; const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
       const pW=210,pH=297;
       const next=i=>{
