@@ -1964,22 +1964,10 @@ textarea { resize: vertical; min-height: 72px; line-height: 1.6; }
    ═══════════════════════════════════════════════ */
 
 .pdf-download-group {
-  position: relative;
   display: flex;
   align-items: center;
-  gap: 1px;
+  gap: 6px;
   flex-shrink: 0;
-}
-.pdf-download-group .btn-ats {
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-}
-.pdf-dd-toggle {
-  padding: 7px 8px !important;
-  font-size: 10px !important;
-  border-top-left-radius: 0 !important;
-  border-bottom-left-radius: 0 !important;
-  border-left: 1px solid rgba(255,255,255,0.15) !important;
 }
 
 .pdf-dd-menu {

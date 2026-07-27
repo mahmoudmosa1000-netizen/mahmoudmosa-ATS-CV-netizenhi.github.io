@@ -31,8 +31,8 @@
     <button class="btn btn-ghost btn-sm"   onclick="saveData()"          data-i18n="btnSave">💾</button>
     <span class="topbar-sep" aria-hidden="true"></span>
     <div class="pdf-download-group">
-      <button class="btn btn-primary" onclick="runHealthCheck('combined')" title="Eine PDF-Datei: Design-Ansicht + maschinenlesbarer ATS-Anhang">⬇ CV herunterladen</button>
-      <button class="btn btn-ghost pdf-dd-toggle" onclick="togglePdfDropdown(event)" title="Weitere Download-Optionen" aria-label="Weitere Optionen">▾</button>
+      <button class="btn btn-primary" onclick="runHealthCheck('design')" title="Nur die visuelle Design-Version, ohne ATS-Textanhang">🎨 Design-CV</button>
+      <button class="btn btn-primary" onclick="runHealthCheck('ats')" title="Nur der maschinenlesbare ATS-Text, ohne Grafik">🎯 ATS-Text</button>
     </div>
     <button class="btn btn-ghost" onclick="exportPDF()"         data-i18n="btnPrint">🖨</button>
   </div>
