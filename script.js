@@ -1690,164 +1690,205 @@ function autoPageBreak(fScaleArg, col, font, name, role) {
   const cvRight = document.getElementById('cv-right');
   const cvLeft  = document.getElementById('cv-left');
   const paper   = document.getElementById('cv-paper');
-  const paper2  = document.getElementById('cv-paper-2');
-  if (!cvRight || !paper2 || !paper) return;
+  if (!cvRight || !paper) return;
 
-  // Oberkante des Papers im Viewport (Referenzpunkt für alle Messungen)
-  const paperTop = paper.getBoundingClientRect().top;
-
-  // ── SKALIERUNGS-FIX ──────────────────────────────────────
-  // #cv-paper wird per CSS transform: scale(...) skaliert — sowohl durch den
-  // manuellen Zoom-Regler (− 100% +) als auch durch autoFitMobilePreview auf
-  // schmalen Bildschirmen. getBoundingClientRect() liefert IMMER die
-  // tatsächlich gerenderten (bereits skalierten) Bildschirm-Pixel.
-  // PAGE_HEIGHT ist aber für zoom=100% kalibriert. Ohne Korrektur wird bei
-  // jedem Zoom ≠ 100% viel zu früh (Zoom > 100%) oder viel zu spät
-  // (Zoom < 100%) umgebrochen — Bug: Seite 1 nur halb gefüllt, kompletter
-  // Rest auf Seite 2. Daher hier den echten, aktuell angewendeten
-  // Skalierungsfaktor aus der berechneten Transform-Matrix auslesen und die
-  // gemessenen Pixel wieder auf "echte" (unskalierte) Werte zurückrechnen.
-  let paperScale = 1;
-  const _transform = window.getComputedStyle(paper).transform;
-  if (_transform && _transform !== 'none') {
-    const _m = _transform.match(/^matrix\(([^,]+),/);
-    if (_m) {
-      const _s = parseFloat(_m[1]);
-      if (_s > 0) paperScale = _s;
-    }
-  }
-
-  // Fester Seitenhöhen-Schwellenwert (A4-Seiteninhalt ≈ 1050px minus Puffer).
-  // WICHTIG: Nicht von cv-left ableiten — bei Modern/Minimal/Berlin hat die
-  // linke Spalte eine völlig andere Höhe (Header-Band, ausgeblendet, etc.),
-  // was den Threshold auf ~0 kollabieren und fast den gesamten Inhalt fälschlich
-  // auf "Seite 2" verschieben würde (siehe Bug: Modern/Minimal zeigten fast nichts).
-  const tplNow = state.template || 'classic';
+  const fS = fScaleArg || 1;
+  const colDark2 = typeof lighten === 'function' ? lighten(col, 0.3) : col;
+  const tplForP2 = state.template || 'classic';
   const PAGE_HEIGHT = 970; // knapp unter 1050px min-height, sicherer Puffer für alle Templates
 
-  // Alle Kinder von cv-right mit ihrer echten Untergrenze
-  const children = Array.from(cvRight.children);
-  if (!children.length) return;
-
-  let splitIndex = -1;
-  for (let i = 0; i < children.length; i++) {
-    // Gemessene (skalierte) Bildschirm-Pixel zurück auf reale Pixel umrechnen
-    const childBottom = (children[i].getBoundingClientRect().bottom - paperTop) / paperScale;
-    if (childBottom > PAGE_HEIGHT && splitIndex === -1) {
-      // An Sektionsgrenzen trennen (Überschrift auf Seite 2 mitnehmen)
-      for (let j = i; j >= 1; j--) {
-        if (children[j].classList.contains('cv-section-title') ||
-            children[j].classList.contains('cv-section-head')) {
-          splitIndex = j;
-          break;
-        }
-      }
-      if (splitIndex === -1) splitIndex = Math.max(1, i);
-      break;
+  function getPaperScale(paperEl) {
+    // ── SKALIERUNGS-FIX ── (Zoom-Regler / mobile Auto-Anpassung, s.o.)
+    let s = 1;
+    const t = window.getComputedStyle(paperEl).transform;
+    if (t && t !== 'none') {
+      const m = t.match(/^matrix\(([^,]+),/);
+      if (m) { const v = parseFloat(m[1]); if (v > 0) s = v; }
     }
+    return s;
   }
 
-  // Manuelle Seite-2-Inhalte
-  const p2Free   = val('p2-freetext');
-  const p2Manual = val('p2-title') || p2Free || (state.page2Entries && state.page2Entries.length > 0);
-
-  if (splitIndex <= 0 && !p2Manual) {
-    // Alles passt auf Seite 1 — Seite 2 ausblenden UND ihren Inhalt leeren
-    // (sonst bleibt Text von einem vorherigen Template-Wechsel/Render-Zyklus
-    // im DOM stehen, auch wenn display:none gesetzt ist — Bug: Duplikate
-    // beim Extrahieren von Text, z.B. für PDF-Export oder Prüfungen)
-    paper2.style.display = 'none';
-    const staleR2 = document.getElementById('cv-right-2');
-    const staleL2 = document.getElementById('cv-left-2');
-    if (staleR2) staleR2.innerHTML = '';
-    if (staleL2) staleL2.innerHTML = '';
-    return;
+  // Findet den Split-Index innerhalb der Kinder EINER Seite.
+  // ── ORPHAN-FIX ────────────────────────────────────────────
+  // Vorher wurde beim Überlauf immer bis zur letzten Sektions-Überschrift
+  // zurückgesprungen und die GESAMTE Sektion (inkl. aller bereits
+  // passenden Einträge) auf die nächste Seite verschoben. Dadurch blieb
+  // auf Seite 1 viel Platz ungenutzt, je mehr Einträge eine Sektion hatte
+  // (Bug: "Seite 1 nur halb voll, alles andere auf Folgeseiten").
+  // Jetzt: die Überschrift wird nur mitgenommen, wenn sie DIREKT vor dem
+  // überlaufenden Element steht (noch kein einziger Eintrag dieser Sektion
+  // hat auf die Seite gepasst) — alle bereits passenden Einträge bleiben
+  // stehen, nur der Überlauf wandert weiter.
+  function findSplitIndex(children, paperTop, scale) {
+    for (let i = 0; i < children.length; i++) {
+      const bottom = (children[i].getBoundingClientRect().bottom - paperTop) / scale;
+      if (bottom > PAGE_HEIGHT) {
+        if (i >= 1 && (children[i - 1].classList.contains('cv-section-title') ||
+                       children[i - 1].classList.contains('cv-section-head'))) {
+          return i - 1;
+        }
+        return i;
+      }
+    }
+    return -1;
   }
-  if (splitIndex <= 0) return; // Nur manuelle Seite-2-Inhalte — normaler render() genügt
 
-  // ── ELEMENTE AUFTEILEN ───────────────────────────────────
-  const overflowKids = children.slice(splitIndex);
-  overflowKids.forEach(el => cvRight.removeChild(el));
-
-  // ── SEITE 2 LINKE SPALTE (Sidebar-Fortsetzung) ──────────
-  const colDark2 = typeof lighten === 'function' ? lighten(col, 0.3) : col;
-  const fS = fScaleArg || 1;
-
-  const l2 = document.getElementById('cv-left-2');
-  const tplForP2 = state.template || 'classic';
-  if (l2 && tplForP2 === 'minimal') {
-    // Minimal hat auf Seite 1 keine Sidebar — Seite 2 konsequent genauso
-    l2.style.display = 'none';
-    l2.innerHTML = '';
-  } else if (l2) {
-    l2.style.backgroundColor = col;
-    l2.style.color = '#fff';
-    l2.style.display = 'table-cell';
-    l2.style.verticalAlign = 'top';
-    l2.style.width = (cvLeft ? cvLeft.offsetWidth : 240) + 'px';
-    l2.style.padding = '2rem 1.25rem';
-    l2.innerHTML = `
+  function buildContinuationLeftHTML(pageNum) {
+    return `
       <div style="width:36px;height:36px;border-radius:50%;
         background:rgba(255,255,255,0.12);
         display:flex;align-items:center;justify-content:center;
         font-size:14px;font-weight:700;color:#fff;
         border:1.5px solid rgba(255,255,255,0.25);
-        margin:0 auto 14px;">2</div>
+        margin:0 auto 14px;">${pageNum}</div>
       <div style="font-size:11.5px;font-weight:700;text-align:center;
         line-height:1.3;word-break:break-word;margin-bottom:4px;
-        opacity:0.9;">${h(name||'')}</div>
+        opacity:0.9;">${h(name || '')}</div>
       <div style="font-size:8.5px;opacity:0.55;text-align:center;
-        margin-bottom:1.75rem;">${h(role||'')}</div>
+        margin-bottom:1.75rem;">${h(role || '')}</div>
       <div style="font-size:7px;opacity:0.3;font-weight:700;
         text-transform:uppercase;letter-spacing:0.12em;
         border-top:1px solid rgba(255,255,255,0.1);
         padding-top:8px;text-align:center;">Fortsetzung</div>`;
   }
 
-  // ── SEITE 2 RECHTE SPALTE ────────────────────────────────
-  const r2 = document.getElementById('cv-right-2');
-  if (r2) {
-    // Dünne Akzent-Linie als visuellen Seitenstart-Indikator
-    const accentLine = `<div style="height:1.5px;margin-bottom:1.5rem;border-radius:1px;
-      background:linear-gradient(90deg,${col},${colDark2} 55%,transparent 100%);"></div>`;
-
-    const overflowHTML = overflowKids.map(el => el.outerHTML).join('');
-
-    // Optionale manuelle Einträge aus dem Seite-2-Tab
-    const p2Entries = (state.page2Entries || [])
-      .map(id => ({
-        title: val('p2e-title-'+id),
-        sub:   val('p2e-sub-'+id),
-        desc:  val('p2e-desc-'+id),
-      }))
-      .filter(e => e.title || e.desc);
-
-    const manualHTML = p2Entries.map(e => `
-      <div class="cv-entry" style="border-left-color:${colDark2};margin-bottom:12px;">
-        <div class="cv-entry-head">
-          <span class="cv-entry-title">${h(e.title||'')}</span>
-        </div>
-        ${e.sub  ? `<div class="cv-entry-sub" style="color:${colDark2};">${h(e.sub)}</div>` : ''}
-        ${e.desc ? `<div class="cv-entry-desc">${h(e.desc).replace(/\n/g,'<br>')}</div>` : ''}
-      </div>`).join('');
-
-    const freeHTML = p2Free
-      ? `<div style="font-size:${Math.round(11*fS)}px;color:#555;
-          line-height:1.65;margin-top:1rem;">${h(p2Free).replace(/\n/g,'<br>')}</div>`
-      : '';
-
-    r2.innerHTML            = accentLine + overflowHTML + manualHTML + freeHTML;
-    r2.style.display        = 'table-cell';
-    r2.style.verticalAlign  = 'top';
-    r2.style.backgroundColor = '#fff';
-    r2.style.padding        = '2rem';
-    r2.style.width          = (tplForP2 === 'minimal') ? '100%' : '';
+  function styleLeftCell(l, pageNum) {
+    if (!l) return;
+    if (tplForP2 === 'minimal') { l.style.display = 'none'; l.innerHTML = ''; return; }
+    l.style.backgroundColor = col;
+    l.style.color = '#fff';
+    l.style.display = 'table-cell';
+    l.style.verticalAlign = 'top';
+    l.style.width = (cvLeft ? cvLeft.offsetWidth : 240) + 'px';
+    l.style.padding = '2rem 1.25rem';
+    l.innerHTML = buildContinuationLeftHTML(pageNum);
   }
 
-  // Seite 2 aktivieren
-  paper2.style.display    = 'table';
-  paper2.style.marginTop  = '2rem';
-  paper2.style.fontFamily = '"Source Sans 3",sans-serif';
+  // Holt Seite N (erzeugt sie bei Bedarf dynamisch — für Seite 3, 4, 5 ...
+  // WICHTIG für "endgültige Lösung für alle Vorlagen": es gibt keine feste
+  // Obergrenze von 2 Seiten mehr. Reicht der Platz nicht, wird automatisch
+  // eine weitere Seite mit derselben Struktur wie Seite 2 angelegt.
+  function getOrCreatePage(pageNum) {
+    let paperEl = document.getElementById('cv-paper-' + pageNum);
+    if (!paperEl) {
+      const prevPaper = document.getElementById('cv-paper-' + (pageNum - 1));
+      paperEl = document.createElement('div');
+      paperEl.className = 'cv-paper cv-paper-continuation';
+      paperEl.id = 'cv-paper-' + pageNum;
+      paperEl.style.position = 'relative';
+      paperEl.innerHTML =
+        `<div class="cv-left" id="cv-left-${pageNum}"></div>` +
+        `<div class="cv-right" id="cv-right-${pageNum}"></div>`;
+      (prevPaper || paper).insertAdjacentElement('afterend', paperEl);
+    }
+    paperEl.style.display    = 'table';
+    paperEl.style.marginTop  = '2rem';
+    paperEl.style.fontFamily = '"Source Sans 3",sans-serif';
+    return {
+      paperEl,
+      leftEl:  document.getElementById('cv-left-' + pageNum),
+      rightEl: document.getElementById('cv-right-' + pageNum),
+    };
+  }
+
+  const accentLine = `<div style="height:1.5px;margin-bottom:1.5rem;border-radius:1px;
+    background:linear-gradient(90deg,${col},${colDark2} 55%,transparent 100%);"></div>`;
+
+  // ── Manuelle Seite-2-Inhalte (Freitext-Tab) ──────────────
+  const p2Free = val('p2-freetext');
+  const p2Entries = (state.page2Entries || [])
+    .map(id => ({ title: val('p2e-title-'+id), sub: val('p2e-sub-'+id), desc: val('p2e-desc-'+id) }))
+    .filter(e => e.title || e.desc);
+  const manualHTML = p2Entries.map(e => `
+    <div class="cv-entry" style="border-left-color:${colDark2};margin-bottom:12px;">
+      <div class="cv-entry-head"><span class="cv-entry-title">${h(e.title || '')}</span></div>
+      ${e.sub  ? `<div class="cv-entry-sub" style="color:${colDark2};">${h(e.sub)}</div>` : ''}
+      ${e.desc ? `<div class="cv-entry-desc">${h(e.desc).replace(/\n/g,'<br>')}</div>` : ''}
+    </div>`).join('');
+  const freeHTML = p2Free
+    ? `<div style="font-size:${Math.round(11*fS)}px;color:#555;line-height:1.65;margin-top:1rem;">${h(p2Free).replace(/\n/g,'<br>')}</div>`
+    : '';
+  const manualTailHTML = manualHTML + freeHTML;
+
+  // ── Iterative Mehrseiten-Verteilung ───────────────────────
+  const children = Array.from(cvRight.children);
+  let pageNum = 1;
+  let currentPaperEl = paper;
+  let currentChildren = children;
+  const MAX_PAGES = 12; // Sicherheitsgrenze gegen Endlosschleifen
+
+  if (children.length) {
+    while (pageNum < MAX_PAGES) {
+      const scale = getPaperScale(currentPaperEl);
+      const top   = currentPaperEl.getBoundingClientRect().top;
+      const splitAt = findSplitIndex(currentChildren, top, scale);
+      if (splitAt <= 0) break; // alles passt auf die aktuelle Seite
+
+      const overflow = currentChildren.slice(splitAt);
+      overflow.forEach(el => el.remove());
+
+      pageNum++;
+      const { rightEl, leftEl } = getOrCreatePage(pageNum);
+      styleLeftCell(leftEl, pageNum);
+      rightEl.innerHTML = accentLine + overflow.map(el => el.outerHTML).join('');
+      rightEl.style.display         = 'table-cell';
+      rightEl.style.verticalAlign   = 'top';
+      rightEl.style.backgroundColor = '#fff';
+      rightEl.style.padding         = '2rem';
+      rightEl.style.width           = (tplForP2 === 'minimal') ? '100%' : '';
+
+      currentPaperEl  = document.getElementById('cv-paper-' + pageNum);
+      currentChildren = Array.from(rightEl.children); // neu einlesen: live Elemente dieser Seite
+    }
+  }
+
+  // ── Manuelle Seite-2-Inhalte anhängen ─────────────────────
+  if (manualTailHTML.trim()) {
+    if (pageNum === 1) {
+      pageNum = 2;
+      const { rightEl, leftEl } = getOrCreatePage(2);
+      styleLeftCell(leftEl, 2);
+      rightEl.innerHTML = accentLine + manualTailHTML;
+      rightEl.style.display         = 'table-cell';
+      rightEl.style.verticalAlign   = 'top';
+      rightEl.style.backgroundColor = '#fff';
+      rightEl.style.padding         = '2rem';
+      rightEl.style.width           = (tplForP2 === 'minimal') ? '100%' : '';
+    } else {
+      const rightEl = document.getElementById('cv-right-' + pageNum);
+      if (rightEl) rightEl.insertAdjacentHTML('beforeend', manualTailHTML);
+    }
+  }
+
+  // ── Aufräumen: nicht mehr benötigte Fortsetzungsseiten entfernen ─────
+  // (verhindert Karteileichen/Duplikate aus einem vorherigen, längeren
+  // Render-Durchlauf — z.B. nach Löschen von Einträgen oder Sprachwechsel)
+  let cleanupIdx = pageNum + 1;
+  while (true) {
+    const stalePaper = document.getElementById('cv-paper-' + cleanupIdx);
+    if (!stalePaper) break;
+    if (stalePaper.classList.contains('cv-paper-continuation')) {
+      stalePaper.remove();
+    } else {
+      // statische Seite 2 aus index.html — nur verstecken & leeren, nicht entfernen
+      stalePaper.style.display = 'none';
+      const sl = document.getElementById('cv-left-' + cleanupIdx);
+      const sr = document.getElementById('cv-right-' + cleanupIdx);
+      if (sl) sl.innerHTML = '';
+      if (sr) sr.innerHTML = '';
+    }
+    cleanupIdx++;
+  }
+
+  if (pageNum === 1) {
+    // Alles passt auf Seite 1 — statische Seite 2 (falls vorhanden) ausblenden
+    const paper2 = document.getElementById('cv-paper-2');
+    if (paper2) {
+      paper2.style.display = 'none';
+      const r2 = document.getElementById('cv-right-2'); if (r2) r2.innerHTML = '';
+      const l2 = document.getElementById('cv-left-2');  if (l2) l2.innerHTML = '';
+    }
+  }
 }
 
 // ─── HELPERS ─────────────────────────────────────
@@ -2025,9 +2066,18 @@ function downloadPDF(){
 function generateDesignPDFBytes(){
   return new Promise((resolve,reject)=>{
     showToast(t('toastPDFBuilding'));
-    const pages=[{paperId:'cv-paper',leftId:'cv-left',paper:document.getElementById('cv-paper'),left:document.getElementById('cv-left'),right:document.getElementById('cv-right')}];
-    const p2el=document.getElementById('cv-paper-2');
-    if(p2el&&p2el.style.display!=='none')pages.push({paperId:'cv-paper-2',leftId:'cv-left-2',paper:p2el,left:document.getElementById('cv-left-2'),right:document.getElementById('cv-right-2')});
+    // Alle sichtbaren .cv-paper-Elemente in Dokumentreihenfolge einsammeln —
+    // nicht mehr fix auf Seite 1+2 begrenzt, da autoPageBreak() jetzt bei
+    // Bedarf beliebig viele Fortsetzungsseiten (cv-paper-3, -4, ...) anlegt.
+    const paperEls = Array.from(document.querySelectorAll('.cv-paper'))
+      .filter(el => el.style.display !== 'none');
+    const pages = paperEls.map(el => ({
+      paperId: el.id,
+      leftId:  (el.querySelector('.cv-left') || {}).id,
+      paper:   el,
+      left:    el.querySelector('.cv-left'),
+      right:   el.querySelector('.cv-right'),
+    }));
     const savedT=pages.map(p=>{const s=p.paper.style.transform;p.paper.style.transform='scale(1)';return s;});
     function offRel(el,anc){let x=0,y=0,cur=el;while(cur&&cur!==anc){x+=cur.offsetLeft;y+=cur.offsetTop;cur=cur.offsetParent;}return{x,y,w:el.offsetWidth,h:el.offsetHeight};}
     requestAnimationFrame(()=>requestAnimationFrame(()=>{
@@ -2039,9 +2089,18 @@ function generateDesignPDFBytes(){
       // html2canvas-Screenshot viel Leerraum mitfotografiert, der beim
       // Zuschneiden in A4-Seiten in eine zusätzliche, fast leere PDF-Seite
       // überläuft (Bug: Seite 4 nahezu komplett leer).
+      // ── HÖHEN-FIX ────────────────────────────────────────────
+      // Nur Seite 1 bekommt eine Mindesthöhe von 1050px (damit der farbige
+      // Hintergrund immer eine volle A4-Seite ausfüllt, auch bei kurzem
+      // Inhalt). Für Folgeseiten wird paper.offsetHeight NICHT verwendet —
+      // die CSS-Regel „.cv-paper { min-height:1050px }“ gilt für JEDES
+      // .cv-paper-Element, bläht also auch kurze Fortsetzungsseiten
+      // künstlich auf. Ohne diese Korrektur wird der Leerraum mitfoto-
+      // grafiert und läuft beim Zuschneiden in A4-Seiten in eine
+      // zusätzliche, fast leere PDF-Seite über (Bug: Extra-Leerseiten).
       const heights=pages.map((p,idx)=>{
-        const real = Math.max(p.paper.offsetHeight, p.left.scrollHeight, p.right.scrollHeight);
-        return idx===0 ? Math.max(real, 1050) : real;
+        if (idx===0) return Math.max(p.paper.offsetHeight, p.left.scrollHeight, p.right.scrollHeight, 1050);
+        return Math.max(p.left ? p.left.scrollHeight : 0, p.right ? p.right.scrollHeight : 0, 100);
       });
       const{jsPDF}=window.jspdf; const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
       const pW=210,pH=297;
