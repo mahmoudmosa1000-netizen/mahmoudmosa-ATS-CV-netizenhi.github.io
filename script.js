@@ -10,6 +10,7 @@ let state = {
   refs:[], certs:[], projects:[],
   savedExp:[], savedEdu:[], savedSkills:[], savedLangs:[], savedExtraQuals:[],
   savedRefs:[], savedCerts:[], savedProjects:[],
+  extraPages: 0, // manuell freigegebene Zusatzseiten über die Standard-2-Seiten-Grenze hinaus
 };
 
 // ─── TEMPLATE SELECTOR ────────────────────────────
@@ -1751,6 +1752,13 @@ function autoPageBreak(fScaleArg, col, font, name, role) {
     paperEl.style.display    = 'table';
     paperEl.style.marginTop  = '2rem';
     paperEl.style.fontFamily = '"Source Sans 3",sans-serif';
+    // Fortsetzungsseiten NICHT künstlich auf die volle A4-Mindesthöhe
+    // (1050px, aus der globalen .cv-paper-CSS-Regel) aufblähen. Sonst wirkt
+    // bei wenig Restinhalt die farbige Sidebar riesig und fast komplett
+    // leer (Bug: "grüner Bereich nimmt über die halbe Seite ein, obwohl
+    // kaum Inhalt da ist"). Die Seite darf sich stattdessen auf ihre
+    // tatsächliche Inhaltshöhe zusammenziehen.
+    paperEl.style.minHeight  = '0';
     return {
       paperEl,
       leftEl:  document.getElementById('cv-left-' + pageNum),
@@ -1785,7 +1793,16 @@ function autoPageBreak(fScaleArg, col, font, name, role) {
   let currentPaperEl = paper;
   let rightRemaining = children;
   let leftRemaining  = (tplForP2 !== 'minimal') ? Array.from(cvLeft.children) : [];
-  const MAX_PAGES = 12; // Sicherheitsgrenze gegen Endlosschleifen
+  const MAX_PAGES = 12; // absolute Sicherheitsgrenze gegen Endlosschleifen
+
+  // ── 2-SEITEN-GRENZE ────────────────────────────────────────
+  // Automatisch werden standardmäßig nur 2 Seiten erzeugt. Passt der
+  // Inhalt nicht, wird NICHT mehr automatisch eine 3./4./... Seite
+  // angelegt — stattdessen wird der Überlauf gestoppt und eine Warnung
+  // angezeigt. Über den Button "+ Seite hinzufügen" (state.extraPages)
+  // kann die Grenze bei Bedarf manuell erhöht werden.
+  const AUTO_PAGE_LIMIT = 2 + (state.extraPages || 0);
+  let contentCutOff = false;
 
   // ── EINE gemeinsame Schleife für linke + rechte Spalte ────
   // Vorher wurde nur die rechte Spalte (Erfahrung/Ausbildung) geprüft — die
@@ -1804,6 +1821,13 @@ function autoPageBreak(fScaleArg, col, font, name, role) {
     const rSplit = findSplitIndex(rightRemaining, top, scale);
     const lSplit = findSplitIndex(leftRemaining, top, scale);
     if (rSplit <= 0 && lSplit <= 0) break; // beide Spalten passen auf die aktuelle Seite
+
+    if (pageNum >= AUTO_PAGE_LIMIT) {
+      // 2-Seiten-Grenze (bzw. manuell erweiterte Grenze) erreicht — nicht
+      // automatisch weitermachen, sondern den Überlauf melden.
+      contentCutOff = true;
+      break;
+    }
 
     let rOverflow = [];
     if (rSplit > 0) {
@@ -1883,6 +1907,51 @@ function autoPageBreak(fScaleArg, col, font, name, role) {
       const l2 = document.getElementById('cv-left-2');  if (l2) l2.innerHTML = '';
     }
   }
+
+  updateOverflowWarning(contentCutOff, pageNum);
+}
+
+// ── ÜBERLAUF-WARNUNG (2-Seiten-Grenze) ──────────────────────
+// Zeigt ein festes Banner statt eines flüchtigen Toasts, da render() bei
+// jedem Tastendruck läuft — ein Toast würde sonst ständig neu aufblitzen.
+// Bietet einen Button, um die automatische Seitenbegrenzung gezielt zu
+// erhöhen (state.extraPages), statt sie unbemerkt zu überschreiten.
+function updateOverflowWarning(active, currentPageCount) {
+  let el = document.getElementById('page-overflow-banner');
+  if (!active) {
+    if (el) el.style.display = 'none';
+    return;
+  }
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'page-overflow-banner';
+    el.className = 'page-overflow-banner';
+    el.innerHTML = `
+      <span>⚠ Inhalt passt nicht auf ${currentPageCount} Seiten — es wurde nicht automatisch
+      eine weitere Seite angelegt.</span>
+      <button type="button" onclick="addManualPage()">+ Seite hinzufügen</button>`;
+    document.body.appendChild(el);
+  } else {
+    el.querySelector('span').textContent =
+      `⚠ Inhalt passt nicht auf ${currentPageCount} Seiten — es wurde nicht automatisch eine weitere Seite angelegt.`;
+  }
+  el.style.display = 'flex';
+}
+
+// Manuell die automatische Seitenbegrenzung um eine Seite erhöhen (löst
+// direkt einen Re-Render aus, damit der bisher zurückgehaltene Überlauf
+// sofort auf der neuen Seite erscheint).
+function addManualPage() {
+  state.extraPages = (state.extraPages || 0) + 1;
+  renderDebounced();
+  showToast('✓ Zusätzliche Seite freigegeben');
+}
+
+// Manuell erlaubte Zusatzseiten wieder zurücksetzen (z.B. nach Kürzen des
+// Inhalts, um wieder zur strikten 2-Seiten-Grenze zurückzukehren).
+function resetManualPages() {
+  state.extraPages = 0;
+  renderDebounced();
 }
 
 // ─── HELPERS ─────────────────────────────────────
@@ -1925,6 +1994,7 @@ function collectData(){
     summary:val('f-summary'),goal:val('f-goal'),komps:val('f-komps'),hobbies:val('f-hobbies'),
     kompsPos:val('f-komps-pos')||'right',hobbiesPos:val('f-hobbies-pos')||'right',licensePos:val('f-license-pos')||'right',
     color:state.color,font:state.font,photoData:state.photoData,
+    extraPages: state.extraPages || 0,
     fontScale:val('f-font-scale')||'100',lineHeight:val('f-line-height')||'1.75',rightBg:val('f-right-bg')||'#ffffff',
     qrInCV: (document.getElementById('qr-in-cv')||{}).checked||false,
     qrX: val('qr-x')||'4', qrY: val('qr-y')||'4', qrSize: val('qr-size')||'64',
@@ -1997,6 +2067,7 @@ function applyData(d){
   if(d.borderSize){const el=document.getElementById('f-border-size');if(el){el.value=d.borderSize;const lb=document.getElementById('border-size-label');if(lb)lb.textContent=d.borderSize+'px';}}
   if(d.borderColor)setVal('f-border-color',d.borderColor);
   if(d.color){state.color=d.color;}if(d.font){state.font=d.font;}
+  state.extraPages = d.extraPages || 0;
   if(d.sectionOrder&&Array.isArray(d.sectionOrder)){sectionOrder=d.sectionOrder.filter(k=>SECTION_LABELS[k]);Object.keys(SECTION_LABELS).forEach(k=>{if(!sectionOrder.includes(k))sectionOrder.push(k);});buildSectionOrderUI();}
   if(d.license&&Array.isArray(d.license)){['AM','A1','A2','A','B','BE','C1','C1E','C','CE','D1','D','T','L'].forEach(c=>{const el=document.getElementById('lic-'+c);if(el)el.checked=false;});d.license.forEach(c=>{const el=document.getElementById('lic-'+c);if(el)el.checked=true;});}
   if(d.photoData){state.photoData=d.photoData;document.getElementById('photo-preview-img').src=d.photoData;document.getElementById('photo-preview-name').textContent=t('photoShown');document.getElementById('photo-drop-zone').style.display='none';document.getElementById('photo-preview-section').style.display='block';}
@@ -2620,6 +2691,15 @@ function getHealthCheckIssues() {
   }
   if (!d.role || d.role.trim().length < 2) {
     issues.push({ level: 'warning', text: 'Keine Berufsbezeichnung angegeben', tab: 'personal' });
+  }
+  // 2-Seiten-Grenze: Inhalt, der über die (ggf. manuell erweiterte)
+  // Seitenzahl hinausgeht, wird beim Export genauso zurückgehalten wie in
+  // der Vorschau — hier vor dem Download noch einmal explizit darauf
+  // hinweisen, damit niemand versehentlich einen unvollständigen CV
+  // herunterlädt.
+  const overflowBanner = document.getElementById('page-overflow-banner');
+  if (overflowBanner && overflowBanner.style.display !== 'none') {
+    issues.push({ level: 'warning', text: 'Inhalt passt nicht auf die aktuelle Seitenzahl — Teile werden beim Download nicht enthalten sein, bis du manuell eine Seite hinzufügst', tab: 'personal' });
   }
 
   return issues;
