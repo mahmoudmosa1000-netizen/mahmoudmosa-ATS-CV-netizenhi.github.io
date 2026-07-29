@@ -1403,7 +1403,7 @@ function render(){
     if(sidebarFolioQRs.length){
       leftHTML += `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;justify-content:center;">`;
       sidebarFolioQRs.forEach(l=>{
-        leftHTML += `<div style="text-align:center;"><img src="${l.qrDataUrl}" style="width:66px;height:66px;image-rendering:crisp-edges;background:#fff;padding:3px;border-radius:4px;display:block;"><div style="font-size:8px;margin-top:3px;opacity:0.65;font-weight:600;max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${h(l.label)}</div></div>`;
+        leftHTML += `<div style="text-align:center;page-break-inside:avoid;break-inside:avoid;"><img src="${l.qrDataUrl}" style="width:66px;height:66px;image-rendering:crisp-edges;background:#fff;padding:3px;border-radius:4px;display:block;"><div style="font-size:8px;margin-top:3px;opacity:0.65;font-weight:600;max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${h(l.label)}</div></div>`;
       });
       leftHTML += `</div>`;
     }
@@ -1560,44 +1560,11 @@ function render(){
     cvRight.innerHTML=rightHTML;
   }
 
-  // PAGE 2
-  const p2Title=val('p2-title'),p2Free=val('p2-freetext');
-  const p2Entries=state.page2Entries.map(id=>({title:val('p2e-title-'+id),sub:val('p2e-sub-'+id),desc:val('p2e-desc-'+id)})).filter(e=>e.title||e.desc);
-  const hasPage2=p2Title||p2Free||p2Entries.length>0;
-  const paper2=document.getElementById('cv-paper-2'); paper2.style.display=hasPage2?'table':'none';
-  if(!hasPage2){
-    // Inhalt leeren, damit kein Text von einem vorherigen Zyklus/Template
-    // stehen bleibt (auch wenn display:none — vermeidet Duplikate bei
-    // Textauslesung, z.B. PDF-Export oder ATS-Prüfungen)
-    const staleR2=document.getElementById('cv-right-2'), staleL2=document.getElementById('cv-left-2');
-    if(staleR2) staleR2.innerHTML=''; if(staleL2) staleL2.innerHTML='';
-  }
-  if(hasPage2){
-    let left2, showLeft2Sidebar;
-    if (tpl === 'minimal') {
-      // Minimal hat auf Seite 1 keine Sidebar — Seite 2 konsequent genauso
-      showLeft2Sidebar = false;
-      left2 = '';
-    } else {
-      // Classic/Modern/Berlin: kompakte Fortsetzungs-Sidebar (bewusst schlicht
-      // gehalten, damit KEINE zweite große Kopie von Avatar+Kontakt entsteht)
-      showLeft2Sidebar = true;
-      left2=`<div style="display:flex;justify-content:center;margin-bottom:1.5rem;"><div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;border:2px solid rgba(255,255,255,0.3);">${t('page2Circle')}</div></div><div style="text-align:center;font-weight:700;font-size:12.5px;margin-bottom:4px;">${h(name)}</div><div style="text-align:center;font-size:8.5px;opacity:0.6;margin-bottom:1.75rem;">${h(role)}</div><div style="font-size:7.5px;font-weight:700;opacity:0.4;text-transform:uppercase;letter-spacing:0.1em;border-top:1px solid rgba(255,255,255,0.12);padding-top:8px;text-align:center;">Fortsetzung</div>`;
-    }
-    let right2=`<div style="font-size:${Math.round(20*fScale)}px;font-weight:700;color:#1e2e1d;margin-bottom:4px;font-family:${font};">${h(name)}</div><div style="font-size:${Math.round(10.5*fScale)}px;color:${colDark2};margin-bottom:12px;font-weight:500;">${h(role)}</div><div style="height:1.5px;margin-bottom:1.25rem;border-radius:1px;background:linear-gradient(90deg,${col} 0%,${colLight} 60%,transparent 100%);"></div>`;
-    if(p2Title) right2+=`<div class="cv-section-head" style="color:${col};">${h(p2Title)}</div>`;
-    p2Entries.forEach(e=>{right2+=`<div class="cv-entry" style="border-left-color:${colLight};margin-bottom:12px;"><div class="cv-entry-head"><span class="cv-entry-title">${h(e.title)}</span></div>${e.sub?`<div class="cv-entry-sub" style="color:${colDark2};">${h(e.sub)}</div>`:''} ${e.desc?`<div class="cv-entry-desc">${h(e.desc).replace(/\n/g,'<br>')}</div>`:''}</div>`;});
-    if(p2Free) right2+=`<div style="font-size:${Math.round(11*fScale)}px;color:#555;line-height:${lineH};margin-top:1rem;">${h(p2Free).replace(/\n/g,'<br>')}</div>`;
-    const l2=document.getElementById('cv-left-2');
-    if (showLeft2Sidebar) {
-      l2.style.display='table-cell'; l2.style.backgroundColor=col; l2.style.color='#fff'; l2.innerHTML=left2;
-    } else {
-      l2.style.display='none'; l2.innerHTML='';
-    }
-    const r2el=document.getElementById('cv-right-2');
-    r2el.innerHTML=right2; r2el.style.width = showLeft2Sidebar ? '' : '100%';
-    paper2.style.fontFamily='"Source Sans 3",sans-serif';
-  }
+  // PAGE 2 — wird jetzt komplett von autoPageBreak() weiter unten
+  // gehandhabt (inkl. manueller Seite-2-Inhalte aus dem Freitext-Tab).
+  // Die frühere, hier direkt in cv-left-2/cv-right-2 schreibende Logik
+  // wurde entfernt, da sie ohnehin von autoPageBreak() überschrieben wurde
+  // (doppelte, sich widersprechende Zuständigkeit für dieselben Elemente).
 
   updateProgress(); if(typeof updateATSScore==="function") updateATSScore();
 
@@ -1795,10 +1762,12 @@ function autoPageBreak(fScaleArg, col, font, name, role) {
     background:linear-gradient(90deg,${col},${colDark2} 55%,transparent 100%);"></div>`;
 
   // ── Manuelle Seite-2-Inhalte (Freitext-Tab) ──────────────
-  const p2Free = val('p2-freetext');
+  const p2Title = val('p2-title');
+  const p2Free  = val('p2-freetext');
   const p2Entries = (state.page2Entries || [])
     .map(id => ({ title: val('p2e-title-'+id), sub: val('p2e-sub-'+id), desc: val('p2e-desc-'+id) }))
     .filter(e => e.title || e.desc);
+  const titleHTML = p2Title ? `<div class="cv-section-head" style="color:${col};">${h(p2Title)}</div>` : '';
   const manualHTML = p2Entries.map(e => `
     <div class="cv-entry" style="border-left-color:${colDark2};margin-bottom:12px;">
       <div class="cv-entry-head"><span class="cv-entry-title">${h(e.title || '')}</span></div>
@@ -1808,38 +1777,63 @@ function autoPageBreak(fScaleArg, col, font, name, role) {
   const freeHTML = p2Free
     ? `<div style="font-size:${Math.round(11*fS)}px;color:#555;line-height:1.65;margin-top:1rem;">${h(p2Free).replace(/\n/g,'<br>')}</div>`
     : '';
-  const manualTailHTML = manualHTML + freeHTML;
+  const manualTailHTML = titleHTML + manualHTML + freeHTML;
 
   // ── Iterative Mehrseiten-Verteilung ───────────────────────
   const children = Array.from(cvRight.children);
   let pageNum = 1;
   let currentPaperEl = paper;
-  let currentChildren = children;
+  let rightRemaining = children;
+  let leftRemaining  = (tplForP2 !== 'minimal') ? Array.from(cvLeft.children) : [];
   const MAX_PAGES = 12; // Sicherheitsgrenze gegen Endlosschleifen
 
-  if (children.length) {
-    while (pageNum < MAX_PAGES) {
-      const scale = getPaperScale(currentPaperEl);
-      const top   = currentPaperEl.getBoundingClientRect().top;
-      const splitAt = findSplitIndex(currentChildren, top, scale);
-      if (splitAt <= 0) break; // alles passt auf die aktuelle Seite
+  // ── EINE gemeinsame Schleife für linke + rechte Spalte ────
+  // Vorher wurde nur die rechte Spalte (Erfahrung/Ausbildung) geprüft — die
+  // linke Sidebar (Kontakt/Skills/Sprachen/Portfolio & QR-Code) wuchs
+  // unbegrenzt weiter, die Tabellenzeile musste mitwachsen, und ein Block
+  // wie der QR-Code konnte exakt auf der Seitengrenze landen und beim
+  // Export/Druck mitten durchgeschnitten werden (Bug: "QR-Code halbiert").
+  // Jetzt werden BEIDE Spalten pro Seite gegen dieselbe PAGE_HEIGHT geprüft;
+  // ein Abschnitt (z.B. der komplette QR-Code-Block) wandert immer NUR als
+  // Ganzes auf die nächste Seite — nie halbiert. Beide Spalten teilen sich
+  // außerdem denselben Seiten-Zähler, sodass nicht mehr Seiten entstehen
+  // als wirklich nötig sind.
+  while (pageNum < MAX_PAGES) {
+    const scale = getPaperScale(currentPaperEl);
+    const top   = currentPaperEl.getBoundingClientRect().top;
+    const rSplit = findSplitIndex(rightRemaining, top, scale);
+    const lSplit = findSplitIndex(leftRemaining, top, scale);
+    if (rSplit <= 0 && lSplit <= 0) break; // beide Spalten passen auf die aktuelle Seite
 
-      const overflow = currentChildren.slice(splitAt);
-      overflow.forEach(el => el.remove());
-
-      pageNum++;
-      const { rightEl, leftEl } = getOrCreatePage(pageNum);
-      styleLeftCell(leftEl, pageNum);
-      rightEl.innerHTML = accentLine + overflow.map(el => el.outerHTML).join('');
-      rightEl.style.display         = 'table-cell';
-      rightEl.style.verticalAlign   = 'top';
-      rightEl.style.backgroundColor = '#fff';
-      rightEl.style.padding         = '2rem';
-      rightEl.style.width           = (tplForP2 === 'minimal') ? '100%' : '';
-
-      currentPaperEl  = document.getElementById('cv-paper-' + pageNum);
-      currentChildren = Array.from(rightEl.children); // neu einlesen: live Elemente dieser Seite
+    let rOverflow = [];
+    if (rSplit > 0) {
+      rOverflow = rightRemaining.slice(rSplit);
+      rOverflow.forEach(el => el.remove());
+      rightRemaining = rightRemaining.slice(0, rSplit);
     }
+    let lOverflow = [];
+    if (lSplit > 0) {
+      lOverflow = leftRemaining.slice(lSplit);
+      lOverflow.forEach(el => el.remove());
+      leftRemaining = leftRemaining.slice(0, lSplit);
+    }
+
+    pageNum++;
+    const { rightEl, leftEl } = getOrCreatePage(pageNum);
+
+    styleLeftCell(leftEl, pageNum); // Fortsetzungs-Kopf (Kreis+Name+"Fortsetzung")
+    if (lOverflow.length) leftEl.insertAdjacentHTML('beforeend', lOverflow.map(el => el.outerHTML).join(''));
+
+    rightEl.innerHTML = accentLine + rOverflow.map(el => el.outerHTML).join('');
+    rightEl.style.display         = 'table-cell';
+    rightEl.style.verticalAlign   = 'top';
+    rightEl.style.backgroundColor = '#fff';
+    rightEl.style.padding         = '2rem';
+    rightEl.style.width           = (tplForP2 === 'minimal') ? '100%' : '';
+
+    currentPaperEl  = document.getElementById('cv-paper-' + pageNum);
+    rightRemaining  = Array.from(rightEl.children); // neu einlesen: live Elemente dieser Seite
+    leftRemaining   = (tplForP2 !== 'minimal') ? Array.from(leftEl.children) : [];
   }
 
   // ── Manuelle Seite-2-Inhalte anhängen ─────────────────────
