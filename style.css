@@ -493,7 +493,25 @@ textarea { resize: vertical; min-height: 72px; line-height: 1.6; }
   .topbar, .editor, .preview-toolbar { display: none !important; }
   .app { display: block; padding-top: 0; }
   .preview { background: none; padding: 0; }
-  .cv-paper { width: 100%; box-shadow: none; transform: none !important; }
+  .cv-paper {
+    width: 100%; box-shadow: none; transform: none !important;
+    /* Jede .cv-paper-Seite (von autoPageBreak() bereits korrekt auf eine
+       A4-Seite zugeschnitten) wird als GENAU EINE Druckseite behandelt.
+       Ohne diese Regel lässt der Browser eigene, unpassende Seitenumbrüche
+       mitten im Inhalt zu — Bug: QR-Codes werden zur Hälfte abgeschnitten
+       und dupliziert, dazwischen entstehen unnötige Leerseiten. */
+    break-inside: avoid; page-break-inside: avoid;
+    break-after: page;   page-break-after: always;
+  }
+  .cv-paper:last-of-type { break-after: auto; page-break-after: auto; }
+
+  /* Einzelne Bausteine dürfen niemals mitten durchgeschnitten werden —
+     v.a. wichtig für QR-Codes/Bilder, die sonst über einen Seitenumbruch
+     hinweg zerrissen und dabei teils doppelt gerendert werden. */
+  .cv-l-section, .cv-entry, .cv-section-head, .cv-contact-item,
+  .cv-komp, .cv-tag, img, svg {
+    break-inside: avoid; page-break-inside: avoid;
+  }
 }
 
 /* ── SECTION ORDER ITEMS ── */
@@ -2093,6 +2111,41 @@ select:focus {
   max-width: 90vw;
   white-space: nowrap;
   animation: toast-in 0.2s ease;
+}
+
+/* ── SEITEN-ÜBERLAUF-WARNBANNER (2-Seiten-Grenze) ── */
+.page-overflow-banner {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #7a4a1f;
+  color: #fff;
+  padding: 10px 12px 10px 16px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  z-index: 9999;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 92vw;
+}
+.page-overflow-banner button {
+  background: rgba(255,255,255,0.18);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.page-overflow-banner button:hover {
+  background: rgba(255,255,255,0.3);
 }
 @keyframes toast-in {
   from { opacity: 0; transform: translateX(-50%) translateY(-6px); }
