@@ -1179,7 +1179,8 @@ function render(){
   const col=state.color, font=state.font;
   // Template-Klasse auf cv-paper setzen
   const tpl = (state && state.template) ? state.template : 'classic';
-  ['classic','modern','minimal','berlin','ats','ats2'].forEach(t2 => {
+  const isPureAtsTpl = (tpl === 'ats' || tpl === 'ats2' || tpl === 'ats3'); // reine ATS-Vorlagen: Führerschein ohne Farbrahmen
+  ['classic','modern','minimal','berlin','ats','ats2','ats3'].forEach(t2 => {
     document.getElementById('cv-paper')?.classList.toggle('tpl-' + t2, t2 === tpl);
     document.getElementById('cv-paper-2')?.classList.toggle('tpl-' + t2, t2 === tpl);
   });
@@ -1328,12 +1329,12 @@ function render(){
       if(!activeLic.length&&!eqEntries.length) return '';
       if(licensePos==='left'){
         leftHTML+=`<div class="cv-l-section"><div class="cv-l-section-title">${t('cvExtraQual')}</div>`;
-        if(activeLic.length){leftHTML+=`<div style="margin-bottom:7px;"><div style="font-size:9px;font-weight:700;opacity:0.55;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;">${t('cvLicense')||'Führerschein'}</div><div style="font-size:11px;font-weight:700;">${activeLic.join(', ')}</div>${licNote?`<div style="font-size:10px;opacity:0.6;margin-top:4px;font-style:italic;">${h(licNote)}</div>`:''}</div>`;}
+        if(activeLic.length){leftHTML+=`<div style="margin-bottom:7px;"><div style="font-size:9px;font-weight:700;opacity:0.55;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;">${t('cvLicense')||'Führerschein'}</div><div style="display:flex;flex-wrap:wrap;gap:4px;">${activeLic.map(c=>`<span style="${isPureAtsTpl?'font-size:11px;font-weight:700;':'background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.3);border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;color:#fff;'}">${c}</span>`).join(isPureAtsTpl?', ':'')}</div>${licNote?`<div style="font-size:10px;opacity:0.6;margin-top:4px;font-style:italic;">${h(licNote)}</div>`:''}</div>`;}
         eqEntries.forEach(e=>{leftHTML+=`<div style="margin-bottom:6px;"><div style="font-size:11px;font-weight:600;opacity:0.9;">${h(e.title)}</div>${e.detail?`<div style="font-size:10px;opacity:0.55;margin-top:1px;">${h(e.detail)}</div>`:''}</div>`;});
         leftHTML+=`</div>`; return '';
       }
       let s=`<div class="cv-section-head" style="color:${col};font-size:${Math.round(8.5*fScale)}px;">${t('cvExtraQual')}</div>`;
-      if(activeLic.length){s+=`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;"><span style="font-size:${Math.round(11*fScale)}px;font-weight:600;color:#444;">${t('cvLicense')||'Führerschein'}:</span><span style="font-size:${Math.round(11*fScale)}px;font-weight:700;color:#222;">${activeLic.join(', ')}</span></div>`;if(licNote)s+=`<div style="font-size:${Math.round(11*fScale)}px;color:#666;margin-bottom:6px;font-style:italic;">${h(licNote)}</div>`;}
+      if(activeLic.length){s+=`<div style="display:flex;align-items:center;gap:${isPureAtsTpl?8:10}px;flex-wrap:wrap;margin-bottom:6px;"><span style="font-size:${Math.round(11*fScale)}px;font-weight:600;color:#444;">${t('cvLicense')||'Führerschein'}:</span>${isPureAtsTpl?`<span style="font-size:${Math.round(11*fScale)}px;font-weight:700;color:#222;">${activeLic.join(', ')}</span>`:`<div style="display:flex;flex-wrap:wrap;gap:5px;">${activeLic.map(c=>`<span style="background:${col};color:#fff;border-radius:5px;padding:2px 9px;font-size:${Math.round(10.5*fScale)}px;font-weight:700;">${c}</span>`).join('')}</div>`}</div>`;if(licNote)s+=`<div style="font-size:${Math.round(11*fScale)}px;color:#666;margin-bottom:6px;font-style:italic;">${h(licNote)}</div>`;}
       if(eqEntries.length){s+=`<div class="cv-komps" style="margin-top:4px;">`;eqEntries.forEach(e=>{s+=`<div class="cv-komp" style="border-left-color:${colLight};font-size:${Math.round(10.5*fScale)}px;"><span style="font-weight:700;">${h(e.title)}</span>${e.detail?`<span style="font-size:${Math.round(10*fScale)}px;color:#888;display:block;margin-top:2px;">${h(e.detail)}</span>`:''}</div>`;});s+=`</div>`;}
       return s;
     },
@@ -1628,6 +1629,8 @@ function render(){
     if(oldBerlinBand) oldBerlinBand.remove();
     const oldAts2Header=paper.querySelector('.tpl-ats2-header');
     if(oldAts2Header) oldAts2Header.remove();
+    const oldAts3HeaderA=paper.querySelector('.tpl-ats3-header');
+    if(oldAts3HeaderA) oldAts3HeaderA.remove();
 
   }else if(tpl==='ats2'){
     // ATS AKZENT: einspaltig (sicherste Variante fürs Auslesen durch ATS-
@@ -1692,6 +1695,65 @@ function render(){
     if(oldAtsHeader2) oldAtsHeader2.remove();
     const oldBerlinBand2=paper.querySelector('.tpl-berlin-band');
     if(oldBerlinBand2) oldBerlinBand2.remove();
+    const oldAts3HeaderB=paper.querySelector('.tpl-ats3-header');
+    if(oldAts3HeaderB) oldAts3HeaderB.remove();
+
+  }else if(tpl==='ats3'){
+    // ATS KOMPAKT: die kompromisslos schlichteste Variante — linksbündig,
+    // keine zentrierten Blöcke, keine Balken/Farbflächen irgendeiner Art,
+    // nur dünne graue Trennlinien zwischen den Abschnitten. Entspricht am
+    // ehesten dem, was Recruiting-Experten als "garantiert lesbar für
+    // jedes ATS-System" empfehlen.
+    paper.style.display='block';
+    const contactBits3=[phone,email,address,linkedin?(linkedin.startsWith('http')?linkedin:'https://'+linkedin):'']
+      .filter(Boolean).map((v,i)=>i===3?`<a href="${v}" target="_blank" style="color:#222;">${h(v)}</a>`:h(v)).join('  |  ');
+    const ats3Header=`
+      <div style="padding:26px 32px 12px;">
+        <div style="font-family:${font};font-size:${Math.round(24*fScale)}px;font-weight:700;
+          color:#161616;">${h(name)}</div>
+        <div style="font-size:${Math.round(11.5*fScale)}px;color:#555;margin-top:2px;">${h(role)}</div>
+        <div style="font-size:${Math.round(9.5*fScale)}px;color:#444;margin-top:8px;">${contactBits3}</div>
+      </div>
+      <div style="height:1px;background:#bbb;margin:0 32px 16px;"></div>`;
+
+    let ats3Side='';
+    const atsHead3=lbl=>`<div style="font-size:${Math.round(9*fScale)}px;font-weight:700;
+      letter-spacing:0.04em;text-transform:uppercase;color:#161616;
+      border-bottom:1px solid #bbb;padding-bottom:4px;margin:14px 0 8px;">${lbl}</div>`;
+    if(activeSkills.length){
+      ats3Side+=atsHead3(t('cvSkills'));
+      ats3Side+=`<div style="font-size:${Math.round(10.5*fScale)}px;color:#333;line-height:1.7;">${activeSkills.map(id=>h(val('sk-name-'+id))).filter(Boolean).join(', ')}</div>`;
+    }
+    if(activeLangs.length){
+      ats3Side+=atsHead3(t('cvLanguages'));
+      ats3Side+=`<div style="font-size:${Math.round(10.5*fScale)}px;color:#333;line-height:1.7;">${activeLangs.map(id=>{const n=val('ln-name-'+id),lv=val('ln-lvl-'+id);const lbl={native:t('optNative'),advanced:t('optAdvanced'),intermediate:t('optIntermediate'),basic:t('optBasic')}[lv]||lv;return n?`${h(n)}${lbl?` (${h(lbl)})`:''}`:'';}).filter(Boolean).join(', ')}</div>`;
+    }
+    if(komps){
+      ats3Side+=atsHead3(t('cvKomps'));
+      ats3Side+=`<div style="font-size:${Math.round(10.5*fScale)}px;color:#333;line-height:1.7;">${komps.split('\n').map(k=>h(k.trim())).filter(Boolean).join(', ')}</div>`;
+    }
+    if(hobbies){
+      ats3Side+=atsHead3(t('cvInterests'));
+      ats3Side+=`<div style="font-size:${Math.round(10.5*fScale)}px;color:#333;line-height:1.7;">${h(hobbies)}</div>`;
+    }
+
+    cvLeft.style.display='none'; cvLeft.innerHTML='';
+    cvRight.style.backgroundColor='transparent'; cvRight.style.color='#222';
+    cvRight.style.display='block'; cvRight.style.width='100%';
+    cvRight.style.padding='0 32px 24px';
+    cvRight.innerHTML=rightHTML+ats3Side;
+
+    const oldAts3Header=paper.querySelector('.tpl-ats3-header');
+    const ats3HeaderEl=oldAts3Header||document.createElement('div');
+    ats3HeaderEl.className='tpl-ats3-header';
+    ats3HeaderEl.innerHTML=ats3Header;
+    if(!oldAts3Header) paper.insertBefore(ats3HeaderEl, paper.firstChild);
+    const oldAtsHeader3=paper.querySelector('.tpl-ats-header');
+    if(oldAtsHeader3) oldAtsHeader3.remove();
+    const oldAts2Header3=paper.querySelector('.tpl-ats2-header');
+    if(oldAts2Header3) oldAts2Header3.remove();
+    const oldBerlinBand3=paper.querySelector('.tpl-berlin-band');
+    if(oldBerlinBand3) oldBerlinBand3.remove();
 
   }else{
     // CLASSIC (default): bestehender Code
@@ -1708,6 +1770,8 @@ function render(){
     if(oldAtsBand) oldAtsBand.remove();
     const oldAts2Band=paper.querySelector('.tpl-ats2-header');
     if(oldAts2Band) oldAts2Band.remove();
+    const oldAts3Band=paper.querySelector('.tpl-ats3-header');
+    if(oldAts3Band) oldAts3Band.remove();
     cvLeft.innerHTML=leftHTML;
     cvRight.innerHTML=rightHTML;
   }
@@ -1874,7 +1938,7 @@ function autoPageBreak(fScaleArg, col, font, name, role) {
   function styleLeftCell(l, pageNum) {
     if (!l) return;
 
-    if (tplForP2 === 'minimal' || tplForP2 === 'ats2') { l.style.display = 'none'; l.innerHTML = ''; return; }
+    if (tplForP2 === 'minimal' || tplForP2 === 'ats2' || tplForP2 === 'ats3') { l.style.display = 'none'; l.innerHTML = ''; return; }
 
     if (tplForP2 === 'modern') {
       // MODERN: Seite 1 hat nur einen SCHMALEN, farbigen Header-Balken —
@@ -1927,7 +1991,7 @@ function autoPageBreak(fScaleArg, col, font, name, role) {
   // Tabellenzelle neben der Sidebar).
   function styleRightCell(r) {
     if (!r) return;
-    const blockLayout = (tplForP2 === 'minimal' || tplForP2 === 'modern' || tplForP2 === 'ats2');
+    const blockLayout = (tplForP2 === 'minimal' || tplForP2 === 'modern' || tplForP2 === 'ats2' || tplForP2 === 'ats3');
     r.style.display         = blockLayout ? 'block' : 'table-cell';
     r.style.verticalAlign   = 'top';
     r.style.backgroundColor = '#fff';
@@ -1955,7 +2019,7 @@ function autoPageBreak(fScaleArg, col, font, name, role) {
     // Modern läuft einspaltig (Block), alle anderen als Tabelle — die
     // globale CSS-Regel für "display:block" gilt nur für #cv-paper (Seite 1),
     // NICHT für dynamisch angelegte Fortsetzungsseiten mit anderer ID.
-    paperEl.style.display    = (tplForP2 === 'modern' || tplForP2 === 'ats2') ? 'block' : 'table';
+    paperEl.style.display    = (tplForP2 === 'modern' || tplForP2 === 'ats2' || tplForP2 === 'ats3') ? 'block' : 'table';
     paperEl.style.marginTop  = '2rem';
     paperEl.style.fontFamily = '"Source Sans 3",sans-serif';
     // Fortsetzungsseiten NICHT künstlich auf die volle A4-Mindesthöhe
@@ -1998,7 +2062,7 @@ function autoPageBreak(fScaleArg, col, font, name, role) {
   let pageNum = 1;
   let currentPaperEl = paper;
   let rightRemaining = children;
-  let leftRemaining  = (tplForP2 !== 'minimal' && tplForP2 !== 'ats2') ? Array.from(cvLeft.children) : [];
+  let leftRemaining  = (tplForP2 !== 'minimal' && tplForP2 !== 'ats2' && tplForP2 !== 'ats3') ? Array.from(cvLeft.children) : [];
   const MAX_PAGES = 12; // absolute Sicherheitsgrenze gegen Endlosschleifen
 
   // ── 2-SEITEN-GRENZE ────────────────────────────────────────
@@ -2059,7 +2123,7 @@ function autoPageBreak(fScaleArg, col, font, name, role) {
 
     currentPaperEl  = document.getElementById('cv-paper-' + pageNum);
     rightRemaining  = Array.from(rightEl.children); // neu einlesen: live Elemente dieser Seite
-    leftRemaining   = (tplForP2 !== 'minimal' && tplForP2 !== 'ats2') ? Array.from(leftEl.children) : [];
+    leftRemaining   = (tplForP2 !== 'minimal' && tplForP2 !== 'ats2' && tplForP2 !== 'ats3') ? Array.from(leftEl.children) : [];
   }
 
   // ── Manuelle Seite-2-Inhalte anhängen ─────────────────────
@@ -2391,7 +2455,7 @@ function generateDesignPDFBytes(){
             // die ist bereits korrekt (transparent bei Modern/Berlin/
             // Minimal, farbig bei Classic) auf dem Live-Element gesetzt
             // und wird beim Klonen automatisch übernommen.
-            const isTableLayout = state.template !== 'modern' && state.template !== 'minimal' && state.template !== 'ats2';
+            const isTableLayout = state.template !== 'modern' && state.template !== 'minimal' && state.template !== 'ats2' && state.template !== 'ats3';
             if(cP){ cP.style.minHeight=fullH+'px'; if(isTableLayout) cP.style.height=fullH+'px'; }
             if(cL && isTableLayout){ cL.style.height=fullH+'px'; cL.style.minHeight=fullH+'px'; }
           }
