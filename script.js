@@ -2029,6 +2029,9 @@ function autoPageBreak(fScaleArg, col, font, name, role) {
     // kaum Inhalt da ist"). Die Seite darf sich stattdessen auf ihre
     // tatsächliche Inhaltshöhe zusammenziehen.
     paperEl.style.minHeight  = '0';
+    // Aktuellen Zoom sofort übernehmen, nicht erst beim nächsten +/− Klick
+    // (sonst wirkt eine frisch erzeugte Folgeseite kurzzeitig falsch groß).
+    if (typeof zoom === 'number') paperEl.style.transform = `scale(${zoom})`;
     return {
       paperEl,
       leftEl:  document.getElementById('cv-left-' + pageNum),
@@ -2227,8 +2230,12 @@ function colLight2(col){const r=parseInt(col.slice(1,3),16),g=parseInt(col.slice
 // ─── ZOOM ────────────────────────────────────────
 function changeZoom(delta){
   zoom=Math.min(1.4,Math.max(0.5,zoom+delta));
-  document.getElementById('cv-paper').style.transform=`scale(${zoom})`;
-  const p2=document.getElementById('cv-paper-2');if(p2)p2.style.transform=`scale(${zoom})`;
+  // Auf ALLE .cv-paper-Elemente anwenden — nicht nur Seite 1+2 fest
+  // verdrahtet. autoPageBreak() kann inzwischen beliebig viele Seiten
+  // (cv-paper-3, -4, ...) dynamisch erzeugen; ohne diese Korrektur blieben
+  // Folgeseiten beim Zoomen unskaliert und wirkten inkonsistent/falsch
+  // dargestellt gegenüber Seite 1+2.
+  document.querySelectorAll('.cv-paper').forEach(p => { p.style.transform = `scale(${zoom})`; });
   document.getElementById('zoom-label').textContent=Math.round(zoom*100)+'%';
   document.getElementById('preview-area').style.paddingBottom=zoom>1?`${(zoom-1)*1000+80}px`:'2rem';
 }
