@@ -1722,7 +1722,44 @@ function autoPageBreak(fScaleArg, col, font, name, role) {
 
   function styleLeftCell(l, pageNum) {
     if (!l) return;
+
     if (tplForP2 === 'minimal') { l.style.display = 'none'; l.innerHTML = ''; return; }
+
+    if (tplForP2 === 'modern') {
+      // MODERN: Seite 1 hat nur einen SCHMALEN, farbigen Header-Balken —
+      // keine durchgehende grüne Sidebar. Fortsetzungsseiten sollen genauso
+      // schlank bleiben (Bug: grüner Bereich nahm bisher die halbe Seite ein).
+      l.style.backgroundColor = 'transparent';
+      l.style.color = colDark2;
+      l.style.display = 'block';
+      l.style.width = '100%';
+      l.style.padding = '0';
+      l.style.borderBottom = `2px solid ${col}`;
+      l.innerHTML = `<div style="font-size:7.5px;font-weight:700;opacity:0.6;
+        text-transform:uppercase;letter-spacing:0.12em;color:${colDark2};
+        padding:2px 0 10px;">${h(name || '')} — Fortsetzung</div>`;
+      return;
+    }
+
+    if (tplForP2 === 'berlin') {
+      // BERLIN: Sidebar ist schon auf Seite 1 transparent/weiß (nur ein
+      // schmales farbiges Header-Band oben) — Fortsetzungsseiten übernehmen
+      // denselben dezenten Stil statt eines vollen Farbblocks.
+      l.style.backgroundColor = 'transparent';
+      l.style.color = '#333';
+      l.style.display = 'table-cell';
+      l.style.verticalAlign = 'top';
+      l.style.width = (cvLeft ? cvLeft.offsetWidth : 240) + 'px';
+      l.style.padding = '1.25rem 1.25rem 1.5rem 1.75rem';
+      l.style.borderRight = `1px solid ${col}22`;
+      l.innerHTML = `<div style="font-size:8.5px;font-weight:700;
+        letter-spacing:0.1em;text-transform:uppercase;color:${col};
+        padding-bottom:8px;margin-bottom:10px;
+        border-bottom:1.5px solid ${col}33;">${h(name || '')} — Fortsetzung</div>`;
+      return;
+    }
+
+    // CLASSIC (Standard): bisheriges Verhalten — voller Farbblock
     l.style.backgroundColor = col;
     l.style.color = '#fff';
     l.style.display = 'table-cell';
@@ -1730,6 +1767,19 @@ function autoPageBreak(fScaleArg, col, font, name, role) {
     l.style.width = (cvLeft ? cvLeft.offsetWidth : 240) + 'px';
     l.style.padding = '2rem 1.25rem';
     l.innerHTML = buildContinuationLeftHTML(pageNum);
+  }
+
+  // Rechte Spalte einer Fortsetzungsseite passend zum Template stylen
+  // (Modern läuft als Block über die volle Breite, Classic/Berlin als
+  // Tabellenzelle neben der Sidebar).
+  function styleRightCell(r) {
+    if (!r) return;
+    const blockLayout = (tplForP2 === 'minimal' || tplForP2 === 'modern');
+    r.style.display         = blockLayout ? 'block' : 'table-cell';
+    r.style.verticalAlign   = 'top';
+    r.style.backgroundColor = '#fff';
+    r.style.padding         = blockLayout ? '1.5rem 0 0' : '2rem';
+    r.style.width           = blockLayout ? '100%' : '';
   }
 
   // Holt Seite N (erzeugt sie bei Bedarf dynamisch — für Seite 3, 4, 5 ...
@@ -1749,7 +1799,10 @@ function autoPageBreak(fScaleArg, col, font, name, role) {
         `<div class="cv-right" id="cv-right-${pageNum}"></div>`;
       (prevPaper || paper).insertAdjacentElement('afterend', paperEl);
     }
-    paperEl.style.display    = 'table';
+    // Modern läuft einspaltig (Block), alle anderen als Tabelle — die
+    // globale CSS-Regel für "display:block" gilt nur für #cv-paper (Seite 1),
+    // NICHT für dynamisch angelegte Fortsetzungsseiten mit anderer ID.
+    paperEl.style.display    = (tplForP2 === 'modern') ? 'block' : 'table';
     paperEl.style.marginTop  = '2rem';
     paperEl.style.fontFamily = '"Source Sans 3",sans-serif';
     // Fortsetzungsseiten NICHT künstlich auf die volle A4-Mindesthöhe
@@ -1849,11 +1902,7 @@ function autoPageBreak(fScaleArg, col, font, name, role) {
     if (lOverflow.length) leftEl.insertAdjacentHTML('beforeend', lOverflow.map(el => el.outerHTML).join(''));
 
     rightEl.innerHTML = accentLine + rOverflow.map(el => el.outerHTML).join('');
-    rightEl.style.display         = 'table-cell';
-    rightEl.style.verticalAlign   = 'top';
-    rightEl.style.backgroundColor = '#fff';
-    rightEl.style.padding         = '2rem';
-    rightEl.style.width           = (tplForP2 === 'minimal') ? '100%' : '';
+    styleRightCell(rightEl);
 
     currentPaperEl  = document.getElementById('cv-paper-' + pageNum);
     rightRemaining  = Array.from(rightEl.children); // neu einlesen: live Elemente dieser Seite
@@ -1867,11 +1916,7 @@ function autoPageBreak(fScaleArg, col, font, name, role) {
       const { rightEl, leftEl } = getOrCreatePage(2);
       styleLeftCell(leftEl, 2);
       rightEl.innerHTML = accentLine + manualTailHTML;
-      rightEl.style.display         = 'table-cell';
-      rightEl.style.verticalAlign   = 'top';
-      rightEl.style.backgroundColor = '#fff';
-      rightEl.style.padding         = '2rem';
-      rightEl.style.width           = (tplForP2 === 'minimal') ? '100%' : '';
+      styleRightCell(rightEl);
     } else {
       const rightEl = document.getElementById('cv-right-' + pageNum);
       if (rightEl) rightEl.insertAdjacentHTML('beforeend', manualTailHTML);
@@ -2175,7 +2220,23 @@ function generateDesignPDFBytes(){
         const rawLinks=[];
         pg.paper.querySelectorAll('a[href]').forEach(link=>{const href=link.getAttribute('href');if(!href||href==='#')return;const pos=offRel(link,pg.paper);rawLinks.push({url:href,xPx:pos.x,yPx:pos.y,wPx:Math.max(pos.w,60),hPx:Math.max(pos.h,14)});});
         html2canvas(pg.paper,{scale:4,useCORS:true,allowTaint:true,backgroundColor:'#ffffff',logging:false,
-          onclone:doc=>{const cP=doc.getElementById(pg.paperId);const cL=doc.getElementById(pg.leftId);if(cP){cP.style.display='table';cP.style.minHeight=fullH+'px';cP.style.height=fullH+'px';}if(cL){cL.style.display='table-cell';cL.style.height=fullH+'px';cL.style.minHeight=fullH+'px';cL.style.backgroundColor=col;cL.style.background=col;}}
+          onclone:doc=>{
+            const cP=doc.getElementById(pg.paperId);
+            const cL=doc.getElementById(pg.leftId);
+            // Höhen-Erzwingung nur für tabellenbasierte Layouts (Classic/
+            // Berlin), wo Seite 1 einen echten Zeilen-Höhenabgleich
+            // zwischen Sidebar und Inhalt braucht. Modern/Minimal laufen
+            // als Block (einspaltig) — dort NICHT anfassen, sonst wird
+            // z.B. Moderns schmaler Header-Balken künstlich auf volle
+            // Seitenhöhe gestreckt (Bug: "grüner Bereich nimmt die halbe
+            // Seite ein"). Außerdem KEINE Hintergrundfarbe mehr erzwingen —
+            // die ist bereits korrekt (transparent bei Modern/Berlin/
+            // Minimal, farbig bei Classic) auf dem Live-Element gesetzt
+            // und wird beim Klonen automatisch übernommen.
+            const isTableLayout = state.template !== 'modern' && state.template !== 'minimal';
+            if(cP){ cP.style.minHeight=fullH+'px'; if(isTableLayout) cP.style.height=fullH+'px'; }
+            if(cL && isTableLayout){ cL.style.height=fullH+'px'; cL.style.minHeight=fullH+'px'; }
+          }
         }).then(canvas=>{
           if(i>0)pdf.addPage();
           const firstPage=pdf.getNumberOfPages(),imgH=(canvas.height*pW)/canvas.width;
