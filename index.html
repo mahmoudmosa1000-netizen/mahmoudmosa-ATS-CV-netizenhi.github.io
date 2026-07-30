@@ -561,6 +561,45 @@
           <span class="tpl-name">ATS Pro</span>
           <span class="tpl-desc">Schwarz/Weiß · 2 Spalten · ATS ✓✓✓</span>
         </button>
+        <button class="tpl-card" onclick="selectTemplate('ats2',this)">
+          <div class="tpl-preview" style="flex-direction:column;background:#fff;">
+            <div style="display:flex;height:4px;flex-shrink:0;">
+              <div style="flex:1;background:#2563eb;"></div>
+              <div style="flex:1;background:#dc2626;"></div>
+              <div style="flex:1;background:#eab308;"></div>
+            </div>
+            <div style="padding:4px 5px 3px;text-align:center;">
+              <div style="height:5px;background:#222;border-radius:1px;width:55%;margin:0 auto 3px;"></div>
+              <div style="height:2px;background:#bbb;border-radius:1px;width:35%;margin:0 auto;"></div>
+            </div>
+            <div style="flex:1;padding:2px 6px;display:flex;flex-direction:column;gap:3px;">
+              <div style="height:3px;background:#ddd;border-radius:1px;"></div>
+              <div style="height:3px;background:#ddd;border-radius:1px;width:80%;"></div>
+              <div style="height:3px;background:#ddd;border-radius:1px;width:60%;"></div>
+            </div>
+          </div>
+          <span class="tpl-name">ATS Akzent</span>
+          <span class="tpl-desc">1 Spalte · Farbbalken (frei wählbar) · ATS ✓✓✓</span>
+        </button>
+      </div>
+
+      <!-- Anpassbarer Dreifarben-Akzentbalken, nur bei "ATS Akzent" sichtbar -->
+      <div id="ats2-stripe-colors" style="display:none;margin-top:10px;">
+        <div class="section-divider" style="margin-top:14px;">Farbbalken (oben)</div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <label style="display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--ink-faint);">
+            Farbe 1
+            <input type="color" id="ats2-stripe-1" value="#2563eb" oninput="state.atsStripeColors[0]=this.value;renderDebounced();" style="width:44px;height:30px;border:none;border-radius:6px;cursor:pointer;">
+          </label>
+          <label style="display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--ink-faint);">
+            Farbe 2
+            <input type="color" id="ats2-stripe-2" value="#dc2626" oninput="state.atsStripeColors[1]=this.value;renderDebounced();" style="width:44px;height:30px;border:none;border-radius:6px;cursor:pointer;">
+          </label>
+          <label style="display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--ink-faint);">
+            Farbe 3
+            <input type="color" id="ats2-stripe-3" value="#eab308" oninput="state.atsStripeColors[2]=this.value;renderDebounced();" style="width:44px;height:30px;border:none;border-radius:6px;cursor:pointer;">
+          </label>
+        </div>
       </div>
 
       <div class="section-divider" data-i18n="sectionColor">Akzentfarbe</div>

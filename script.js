@@ -11,6 +11,7 @@ let state = {
   savedExp:[], savedEdu:[], savedSkills:[], savedLangs:[], savedExtraQuals:[],
   savedRefs:[], savedCerts:[], savedProjects:[],
   extraPages: 0, // manuell freigegebene Zusatzseiten über die Standard-2-Seiten-Grenze hinaus
+  atsStripeColors: ['#2563eb', '#dc2626', '#eab308'], // Blau/Rot/Gelb-Akzentbalken für "ATS Akzent"
 };
 
 // ─── TEMPLATE SELECTOR ────────────────────────────
@@ -18,6 +19,8 @@ function selectTemplate(name, btnEl) {
   state.template = name;
   document.querySelectorAll('.tpl-card').forEach(b => b.classList.remove('active'));
   if (btnEl) btnEl.classList.add('active');
+  const stripePanel = document.getElementById('ats2-stripe-colors');
+  if (stripePanel) stripePanel.style.display = (name === 'ats2') ? 'block' : 'none';
   render();
 }
 
@@ -1176,7 +1179,7 @@ function render(){
   const col=state.color, font=state.font;
   // Template-Klasse auf cv-paper setzen
   const tpl = (state && state.template) ? state.template : 'classic';
-  ['classic','modern','minimal','berlin','ats'].forEach(t2 => {
+  ['classic','modern','minimal','berlin','ats','ats2'].forEach(t2 => {
     document.getElementById('cv-paper')?.classList.toggle('tpl-' + t2, t2 === tpl);
     document.getElementById('cv-paper-2')?.classList.toggle('tpl-' + t2, t2 === tpl);
   });
@@ -1325,12 +1328,12 @@ function render(){
       if(!activeLic.length&&!eqEntries.length) return '';
       if(licensePos==='left'){
         leftHTML+=`<div class="cv-l-section"><div class="cv-l-section-title">${t('cvExtraQual')}</div>`;
-        if(activeLic.length){leftHTML+=`<div style="margin-bottom:7px;"><div style="font-size:9px;font-weight:700;opacity:0.55;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;">${t('cvLicense')||'Führerschein'}</div><div style="display:flex;flex-wrap:wrap;gap:4px;">${activeLic.map(c=>`<span style="background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.3);border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;color:#fff;">${c}</span>`).join('')}</div>${licNote?`<div style="font-size:10px;opacity:0.6;margin-top:4px;font-style:italic;">${h(licNote)}</div>`:''}</div>`;}
+        if(activeLic.length){leftHTML+=`<div style="margin-bottom:7px;"><div style="font-size:9px;font-weight:700;opacity:0.55;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;">${t('cvLicense')||'Führerschein'}</div><div style="font-size:11px;font-weight:700;">${activeLic.join(', ')}</div>${licNote?`<div style="font-size:10px;opacity:0.6;margin-top:4px;font-style:italic;">${h(licNote)}</div>`:''}</div>`;}
         eqEntries.forEach(e=>{leftHTML+=`<div style="margin-bottom:6px;"><div style="font-size:11px;font-weight:600;opacity:0.9;">${h(e.title)}</div>${e.detail?`<div style="font-size:10px;opacity:0.55;margin-top:1px;">${h(e.detail)}</div>`:''}</div>`;});
         leftHTML+=`</div>`; return '';
       }
       let s=`<div class="cv-section-head" style="color:${col};font-size:${Math.round(8.5*fScale)}px;">${t('cvExtraQual')}</div>`;
-      if(activeLic.length){s+=`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;"><span style="font-size:${Math.round(11*fScale)}px;font-weight:600;color:#444;">${t('cvLicense')||'Führerschein'}:</span><div style="display:flex;flex-wrap:wrap;gap:5px;">${activeLic.map(c=>`<span style="background:${col};color:#fff;border-radius:5px;padding:2px 9px;font-size:${Math.round(10.5*fScale)}px;font-weight:700;">${c}</span>`).join('')}</div></div>`;if(licNote)s+=`<div style="font-size:${Math.round(11*fScale)}px;color:#666;margin-bottom:6px;font-style:italic;">${h(licNote)}</div>`;}
+      if(activeLic.length){s+=`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;"><span style="font-size:${Math.round(11*fScale)}px;font-weight:600;color:#444;">${t('cvLicense')||'Führerschein'}:</span><span style="font-size:${Math.round(11*fScale)}px;font-weight:700;color:#222;">${activeLic.join(', ')}</span></div>`;if(licNote)s+=`<div style="font-size:${Math.round(11*fScale)}px;color:#666;margin-bottom:6px;font-style:italic;">${h(licNote)}</div>`;}
       if(eqEntries.length){s+=`<div class="cv-komps" style="margin-top:4px;">`;eqEntries.forEach(e=>{s+=`<div class="cv-komp" style="border-left-color:${colLight};font-size:${Math.round(10.5*fScale)}px;"><span style="font-weight:700;">${h(e.title)}</span>${e.detail?`<span style="font-size:${Math.round(10*fScale)}px;color:#888;display:block;margin-top:2px;">${h(e.detail)}</span>`:''}</div>`;});s+=`</div>`;}
       return s;
     },
@@ -1595,16 +1598,24 @@ function render(){
       atsSide+=`<div style="font-size:${Math.round(10.5*fScale)}px;color:#333;line-height:1.6;">${h(hobbies)}</div>`;
     }
 
+    // WICHTIG: Hauptinhalt (Profil/Erfahrung/Ausbildung) muss in cv-right
+    // stehen — die komplette Mehrseiten-/Umbruch-Logik (autoPageBreak) geht
+    // grundsätzlich davon aus, dass der lange, paginierte Hauptinhalt in
+    // cv-right liegt und cv-left nur die kurze Zusatzspalte ist. Vertauscht
+    // führte das dazu, dass Überlauf in die schmale "Fortsetzung"-Spalte
+    // statt in eine volle neue Seite lief (Bug: Seite wurde nicht komplett
+    // angezeigt).
     cvLeft.style.backgroundColor='transparent'; cvLeft.style.color='#222';
     cvLeft.style.display='table-cell'; cvLeft.style.verticalAlign='top';
-    cvLeft.style.width='62%'; cvLeft.style.padding='0 16px 24px 32px';
-    cvLeft.innerHTML=rightHTML; // Profil/Erfahrung/Ausbildung (bereits akzentarm gestaltet)
+    cvLeft.style.width='38%'; cvLeft.style.padding='0 16px 24px 32px';
+    cvLeft.style.borderRight='1px solid #e2e2e2';
+    cvLeft.innerHTML=atsSide;
 
     cvRight.style.backgroundColor='transparent'; cvRight.style.color='#222';
     cvRight.style.display='table-cell'; cvRight.style.verticalAlign='top';
-    cvRight.style.width='38%'; cvRight.style.padding='0 32px 24px 16px';
-    cvRight.style.borderLeft='1px solid #e2e2e2';
-    cvRight.innerHTML=atsSide;
+    cvRight.style.width='62%'; cvRight.style.padding='0 32px 24px 16px';
+    cvRight.style.borderLeft='';
+    cvRight.innerHTML=rightHTML; // Profil/Erfahrung/Ausbildung (bereits akzentarm gestaltet)
 
     // Header-Band einfügen (wie bei Berlin als eigenständiges Element vor
     // der Tabelle, aber komplett schwarz/weiß statt farbig)
@@ -1615,6 +1626,72 @@ function render(){
     if(!oldAtsHeader) paper.insertBefore(atsHeaderEl, paper.firstChild);
     const oldBerlinBand=paper.querySelector('.tpl-berlin-band');
     if(oldBerlinBand) oldBerlinBand.remove();
+    const oldAts2Header=paper.querySelector('.tpl-ats2-header');
+    if(oldAts2Header) oldAts2Header.remove();
+
+  }else if(tpl==='ats2'){
+    // ATS AKZENT: einspaltig (sicherste Variante fürs Auslesen durch ATS-
+    // Systeme, da nur EIN durchgehender Textfluss statt zweier Spalten),
+    // mit einem schmalen, frei einfärbbaren Dreifarben-Balken oben als
+    // einzigem gestalterischem Akzent — Rest komplett schwarz/weiß.
+    paper.style.display='block';
+    const stripes=(state.atsStripeColors&&state.atsStripeColors.length===3)?state.atsStripeColors:['#2563eb','#dc2626','#eab308'];
+    const contactBits2=[
+      phone?`📞 ${h(phone)}`:'', email?`✉ ${h(email)}`:'', address?`📍 ${h(address)}`:'',
+      linkedin?`<a href="${linkedin.startsWith('http')?linkedin:'https://'+linkedin}" target="_blank" style="color:#333;text-decoration:underline;">🔗 LinkedIn</a>`:'',
+    ].filter(Boolean).join('&nbsp;&nbsp;&nbsp;·&nbsp;&nbsp;&nbsp;');
+    const ats2Header=`
+      <div style="display:flex;height:5px;">
+        <div style="flex:1;background:${esc(stripes[0])};"></div>
+        <div style="flex:1;background:${esc(stripes[1])};"></div>
+        <div style="flex:1;background:${esc(stripes[2])};"></div>
+      </div>
+      <div style="text-align:center;padding:22px 32px 16px;">
+        <div style="font-family:${font};font-size:${Math.round(26*fScale)}px;font-weight:800;
+          letter-spacing:0.02em;color:#161616;text-transform:uppercase;">${h(name)}</div>
+        <div style="font-size:${Math.round(12*fScale)}px;color:#555;margin-top:4px;">${h(role)}</div>
+        <div style="font-size:${Math.round(9.5*fScale)}px;color:#444;margin-top:12px;">${contactBits2}</div>
+      </div>
+      <div style="height:1px;background:#ccc;margin:0 32px 18px;"></div>`;
+
+    // Einspaltig: Hauptinhalt + Skills/Sprachen/Kompetenzen/Interessen
+    // hintereinander im selben Textfluss (kein zweispaltiges Layout).
+    let ats2Side='';
+    const atsHead2=lbl=>`<div style="font-size:${Math.round(9*fScale)}px;font-weight:800;
+      letter-spacing:0.08em;text-transform:uppercase;color:#161616;
+      border-bottom:1.5px solid #ccc;padding-bottom:4px;margin:16px 0 8px;">${lbl}</div>`;
+    if(activeSkills.length){
+      ats2Side+=atsHead2(t('cvSkills'));
+      ats2Side+=`<div style="font-size:${Math.round(10.5*fScale)}px;color:#333;line-height:1.7;">${activeSkills.map(id=>h(val('sk-name-'+id))).filter(Boolean).join(' · ')}</div>`;
+    }
+    if(activeLangs.length){
+      ats2Side+=atsHead2(t('cvLanguages'));
+      ats2Side+=`<div style="font-size:${Math.round(10.5*fScale)}px;color:#333;line-height:1.7;">${activeLangs.map(id=>{const n=val('ln-name-'+id),lv=val('ln-lvl-'+id);const lbl={native:t('optNative'),advanced:t('optAdvanced'),intermediate:t('optIntermediate'),basic:t('optBasic')}[lv]||lv;return n?`${h(n)}${lbl?` (${h(lbl)})`:''}`:'';}).filter(Boolean).join(' · ')}</div>`;
+    }
+    if(komps){
+      ats2Side+=atsHead2(t('cvKomps'));
+      ats2Side+=`<div style="font-size:${Math.round(10.5*fScale)}px;color:#333;line-height:1.7;">${komps.split('\n').map(k=>h(k.trim())).filter(Boolean).join(' · ')}</div>`;
+    }
+    if(hobbies){
+      ats2Side+=atsHead2(t('cvInterests'));
+      ats2Side+=`<div style="font-size:${Math.round(10.5*fScale)}px;color:#333;line-height:1.7;">${h(hobbies)}</div>`;
+    }
+
+    cvLeft.style.display='none'; cvLeft.innerHTML='';
+    cvRight.style.backgroundColor='transparent'; cvRight.style.color='#222';
+    cvRight.style.display='block'; cvRight.style.width='100%';
+    cvRight.style.padding='0 32px 24px';
+    cvRight.innerHTML=rightHTML+ats2Side;
+
+    const oldAts2Header=paper.querySelector('.tpl-ats2-header');
+    const ats2HeaderEl=oldAts2Header||document.createElement('div');
+    ats2HeaderEl.className='tpl-ats2-header';
+    ats2HeaderEl.innerHTML=ats2Header;
+    if(!oldAts2Header) paper.insertBefore(ats2HeaderEl, paper.firstChild);
+    const oldAtsHeader2=paper.querySelector('.tpl-ats-header');
+    if(oldAtsHeader2) oldAtsHeader2.remove();
+    const oldBerlinBand2=paper.querySelector('.tpl-berlin-band');
+    if(oldBerlinBand2) oldBerlinBand2.remove();
 
   }else{
     // CLASSIC (default): bestehender Code
@@ -1629,6 +1706,8 @@ function render(){
     if(oldBand) oldBand.remove();
     const oldAtsBand=paper.querySelector('.tpl-ats-header');
     if(oldAtsBand) oldAtsBand.remove();
+    const oldAts2Band=paper.querySelector('.tpl-ats2-header');
+    if(oldAts2Band) oldAts2Band.remove();
     cvLeft.innerHTML=leftHTML;
     cvRight.innerHTML=rightHTML;
   }
@@ -1795,7 +1874,7 @@ function autoPageBreak(fScaleArg, col, font, name, role) {
   function styleLeftCell(l, pageNum) {
     if (!l) return;
 
-    if (tplForP2 === 'minimal') { l.style.display = 'none'; l.innerHTML = ''; return; }
+    if (tplForP2 === 'minimal' || tplForP2 === 'ats2') { l.style.display = 'none'; l.innerHTML = ''; return; }
 
     if (tplForP2 === 'modern') {
       // MODERN: Seite 1 hat nur einen SCHMALEN, farbigen Header-Balken —
@@ -1848,7 +1927,7 @@ function autoPageBreak(fScaleArg, col, font, name, role) {
   // Tabellenzelle neben der Sidebar).
   function styleRightCell(r) {
     if (!r) return;
-    const blockLayout = (tplForP2 === 'minimal' || tplForP2 === 'modern');
+    const blockLayout = (tplForP2 === 'minimal' || tplForP2 === 'modern' || tplForP2 === 'ats2');
     r.style.display         = blockLayout ? 'block' : 'table-cell';
     r.style.verticalAlign   = 'top';
     r.style.backgroundColor = '#fff';
@@ -1876,7 +1955,7 @@ function autoPageBreak(fScaleArg, col, font, name, role) {
     // Modern läuft einspaltig (Block), alle anderen als Tabelle — die
     // globale CSS-Regel für "display:block" gilt nur für #cv-paper (Seite 1),
     // NICHT für dynamisch angelegte Fortsetzungsseiten mit anderer ID.
-    paperEl.style.display    = (tplForP2 === 'modern') ? 'block' : 'table';
+    paperEl.style.display    = (tplForP2 === 'modern' || tplForP2 === 'ats2') ? 'block' : 'table';
     paperEl.style.marginTop  = '2rem';
     paperEl.style.fontFamily = '"Source Sans 3",sans-serif';
     // Fortsetzungsseiten NICHT künstlich auf die volle A4-Mindesthöhe
@@ -1919,7 +1998,7 @@ function autoPageBreak(fScaleArg, col, font, name, role) {
   let pageNum = 1;
   let currentPaperEl = paper;
   let rightRemaining = children;
-  let leftRemaining  = (tplForP2 !== 'minimal') ? Array.from(cvLeft.children) : [];
+  let leftRemaining  = (tplForP2 !== 'minimal' && tplForP2 !== 'ats2') ? Array.from(cvLeft.children) : [];
   const MAX_PAGES = 12; // absolute Sicherheitsgrenze gegen Endlosschleifen
 
   // ── 2-SEITEN-GRENZE ────────────────────────────────────────
@@ -1980,7 +2059,7 @@ function autoPageBreak(fScaleArg, col, font, name, role) {
 
     currentPaperEl  = document.getElementById('cv-paper-' + pageNum);
     rightRemaining  = Array.from(rightEl.children); // neu einlesen: live Elemente dieser Seite
-    leftRemaining   = (tplForP2 !== 'minimal') ? Array.from(leftEl.children) : [];
+    leftRemaining   = (tplForP2 !== 'minimal' && tplForP2 !== 'ats2') ? Array.from(leftEl.children) : [];
   }
 
   // ── Manuelle Seite-2-Inhalte anhängen ─────────────────────
@@ -2114,6 +2193,7 @@ function collectData(){
     kompsPos:val('f-komps-pos')||'right',hobbiesPos:val('f-hobbies-pos')||'right',licensePos:val('f-license-pos')||'right',
     color:state.color,font:state.font,photoData:state.photoData,
     extraPages: state.extraPages || 0,
+    atsStripeColors: state.atsStripeColors || ['#2563eb','#dc2626','#eab308'],
     fontScale:val('f-font-scale')||'100',lineHeight:val('f-line-height')||'1.75',rightBg:val('f-right-bg')||'#ffffff',
     qrInCV: (document.getElementById('qr-in-cv')||{}).checked||false,
     qrX: val('qr-x')||'4', qrY: val('qr-y')||'4', qrSize: val('qr-size')||'64',
@@ -2187,6 +2267,10 @@ function applyData(d){
   if(d.borderColor)setVal('f-border-color',d.borderColor);
   if(d.color){state.color=d.color;}if(d.font){state.font=d.font;}
   state.extraPages = d.extraPages || 0;
+  state.atsStripeColors = (Array.isArray(d.atsStripeColors) && d.atsStripeColors.length===3) ? d.atsStripeColors : ['#2563eb','#dc2626','#eab308'];
+  ['ats2-stripe-1','ats2-stripe-2','ats2-stripe-3'].forEach((id,i)=>{const el=document.getElementById(id);if(el)el.value=state.atsStripeColors[i];});
+  const stripePanelLoad=document.getElementById('ats2-stripe-colors');
+  if(stripePanelLoad) stripePanelLoad.style.display=(state.template==='ats2')?'block':'none';
   if(d.sectionOrder&&Array.isArray(d.sectionOrder)){sectionOrder=d.sectionOrder.filter(k=>SECTION_LABELS[k]);Object.keys(SECTION_LABELS).forEach(k=>{if(!sectionOrder.includes(k))sectionOrder.push(k);});buildSectionOrderUI();}
   if(d.license&&Array.isArray(d.license)){['AM','A1','A2','A','B','BE','C1','C1E','C','CE','D1','D','T','L'].forEach(c=>{const el=document.getElementById('lic-'+c);if(el)el.checked=false;});d.license.forEach(c=>{const el=document.getElementById('lic-'+c);if(el)el.checked=true;});}
   if(d.photoData){state.photoData=d.photoData;document.getElementById('photo-preview-img').src=d.photoData;document.getElementById('photo-preview-name').textContent=t('photoShown');document.getElementById('photo-drop-zone').style.display='none';document.getElementById('photo-preview-section').style.display='block';}
@@ -2307,7 +2391,7 @@ function generateDesignPDFBytes(){
             // die ist bereits korrekt (transparent bei Modern/Berlin/
             // Minimal, farbig bei Classic) auf dem Live-Element gesetzt
             // und wird beim Klonen automatisch übernommen.
-            const isTableLayout = state.template !== 'modern' && state.template !== 'minimal';
+            const isTableLayout = state.template !== 'modern' && state.template !== 'minimal' && state.template !== 'ats2';
             if(cP){ cP.style.minHeight=fullH+'px'; if(isTableLayout) cP.style.height=fullH+'px'; }
             if(cL && isTableLayout){ cL.style.height=fullH+'px'; cL.style.minHeight=fullH+'px'; }
           }
