@@ -1176,7 +1176,7 @@ function render(){
   const col=state.color, font=state.font;
   // Template-Klasse auf cv-paper setzen
   const tpl = (state && state.template) ? state.template : 'classic';
-  ['classic','modern','minimal','berlin'].forEach(t2 => {
+  ['classic','modern','minimal','berlin','ats'].forEach(t2 => {
     document.getElementById('cv-paper')?.classList.toggle('tpl-' + t2, t2 === tpl);
     document.getElementById('cv-paper-2')?.classList.toggle('tpl-' + t2, t2 === tpl);
   });
@@ -1546,6 +1546,76 @@ function render(){
     cvRight.style.display='table-cell';
     cvLeft.style.display='table-cell';
 
+  }else if(tpl==='ats'){
+    // ATS PRO: reine Schwarz/Weiß-Vorlage ohne jede Farbfläche — nur
+    // Textfarbe/dünne Trennlinien in Akzentfarbe, damit jedes ATS-System
+    // den Inhalt zuverlässig auslesen kann. Struktur angelehnt an das vom
+    // Nutzer bereitgestellte Referenzbeispiel: zentrierter Name-Header mit
+    // Kontaktzeile, darunter zwei schlichte Spalten.
+    paper.style.display='block';
+    const contactBits=[
+      phone?`📞 ${h(phone)}`:'', email?`✉ ${h(email)}`:'', address?`📍 ${h(address)}`:'',
+      linkedin?`<a href="${linkedin.startsWith('http')?linkedin:'https://'+linkedin}" target="_blank" style="color:#333;text-decoration:underline;">🔗 LinkedIn</a>`:'',
+    ].filter(Boolean).join('&nbsp;&nbsp;&nbsp;·&nbsp;&nbsp;&nbsp;');
+    const atsHeader=`
+      <div style="text-align:center;padding:26px 32px 16px;">
+        <div style="font-family:${font};font-size:${Math.round(27*fScale)}px;font-weight:800;
+          letter-spacing:0.02em;color:#161616;text-transform:uppercase;">${h(name)}</div>
+        <div style="font-size:${Math.round(12*fScale)}px;color:#555;margin-top:4px;">${h(role)}</div>
+        <div style="font-size:${Math.round(9.5*fScale)}px;color:#444;margin-top:12px;">${contactBits}</div>
+      </div>
+      <div style="height:1px;background:#ccc;margin:0 32px 18px;"></div>`;
+
+    // Rechte Spalte (schmal): Skills / Sprachen / Kompetenzen / Interessen —
+    // bewusst als reine Textlisten ohne Balken/Punkte-Grafik, rein schwarz.
+    let atsSide='';
+    const atsHead=lbl=>`<div style="font-size:${Math.round(9*fScale)}px;font-weight:800;
+      letter-spacing:0.08em;text-transform:uppercase;color:#161616;
+      border-bottom:1.5px solid #ccc;padding-bottom:4px;margin:0 0 8px;">${lbl} <span style="color:${col};">+</span></div>`;
+    if(activeSkills.length){
+      atsSide+=atsHead(t('cvSkills'));
+      atsSide+=`<ul style="margin:0 0 16px;padding:0 0 0 15px;list-style:disc;">`;
+      activeSkills.forEach(id=>{const n=val('sk-name-'+id);if(n)atsSide+=`<li style="font-size:${Math.round(10.5*fScale)}px;color:#333;margin-bottom:4px;line-height:1.4;">${h(n)}</li>`;});
+      atsSide+=`</ul>`;
+    }
+    if(activeLangs.length){
+      atsSide+=atsHead(t('cvLanguages'));
+      atsSide+=`<ul style="margin:0 0 16px;padding:0 0 0 15px;list-style:disc;">`;
+      activeLangs.forEach(id=>{const n=val('ln-name-'+id),lv=val('ln-lvl-'+id);const lbl={native:t('optNative'),advanced:t('optAdvanced'),intermediate:t('optIntermediate'),basic:t('optBasic')}[lv]||lv;if(n)atsSide+=`<li style="font-size:${Math.round(10.5*fScale)}px;color:#333;margin-bottom:4px;line-height:1.4;">${h(n)}${lbl?`: ${h(lbl)}`:''}</li>`;});
+      atsSide+=`</ul>`;
+    }
+    if(komps){
+      atsSide+=atsHead(t('cvKomps'));
+      atsSide+=`<ul style="margin:0 0 16px;padding:0 0 0 15px;list-style:disc;">`;
+      komps.split('\n').forEach(k=>{if(k.trim())atsSide+=`<li style="font-size:${Math.round(10.5*fScale)}px;color:#333;margin-bottom:4px;line-height:1.4;">${h(k.trim())}</li>`;});
+      atsSide+=`</ul>`;
+    }
+    if(hobbies){
+      atsSide+=atsHead(t('cvInterests'));
+      atsSide+=`<div style="font-size:${Math.round(10.5*fScale)}px;color:#333;line-height:1.6;">${h(hobbies)}</div>`;
+    }
+
+    cvLeft.style.backgroundColor='transparent'; cvLeft.style.color='#222';
+    cvLeft.style.display='table-cell'; cvLeft.style.verticalAlign='top';
+    cvLeft.style.width='62%'; cvLeft.style.padding='0 16px 24px 32px';
+    cvLeft.innerHTML=rightHTML; // Profil/Erfahrung/Ausbildung (bereits akzentarm gestaltet)
+
+    cvRight.style.backgroundColor='transparent'; cvRight.style.color='#222';
+    cvRight.style.display='table-cell'; cvRight.style.verticalAlign='top';
+    cvRight.style.width='38%'; cvRight.style.padding='0 32px 24px 16px';
+    cvRight.style.borderLeft='1px solid #e2e2e2';
+    cvRight.innerHTML=atsSide;
+
+    // Header-Band einfügen (wie bei Berlin als eigenständiges Element vor
+    // der Tabelle, aber komplett schwarz/weiß statt farbig)
+    const oldAtsHeader=paper.querySelector('.tpl-ats-header');
+    const atsHeaderEl=oldAtsHeader||document.createElement('div');
+    atsHeaderEl.className='tpl-ats-header';
+    atsHeaderEl.innerHTML=atsHeader;
+    if(!oldAtsHeader) paper.insertBefore(atsHeaderEl, paper.firstChild);
+    const oldBerlinBand=paper.querySelector('.tpl-berlin-band');
+    if(oldBerlinBand) oldBerlinBand.remove();
+
   }else{
     // CLASSIC (default): bestehender Code
     cvLeft.style.backgroundColor=col; cvLeft.style.color='#fff';
@@ -1554,9 +1624,11 @@ function render(){
     cvRight.style.display=''; cvRight.style.width='';
     cvRight.style.padding=''; cvRight.style.backgroundColor=rightBg;
     paper.style.display='';
-    // Berlin-Band entfernen falls vorhanden
+    // Berlin-Band / ATS-Header entfernen falls vorhanden
     const oldBand=paper.querySelector('.tpl-berlin-band');
     if(oldBand) oldBand.remove();
+    const oldAtsBand=paper.querySelector('.tpl-ats-header');
+    if(oldAtsBand) oldAtsBand.remove();
     cvLeft.innerHTML=leftHTML;
     cvRight.innerHTML=rightHTML;
   }
@@ -1741,21 +1813,23 @@ function autoPageBreak(fScaleArg, col, font, name, role) {
       return;
     }
 
-    if (tplForP2 === 'berlin') {
-      // BERLIN: Sidebar ist schon auf Seite 1 transparent/weiß (nur ein
-      // schmales farbiges Header-Band oben) — Fortsetzungsseiten übernehmen
-      // denselben dezenten Stil statt eines vollen Farbblocks.
+    if (tplForP2 === 'berlin' || tplForP2 === 'ats') {
+      // BERLIN/ATS: Sidebar ist schon auf Seite 1 transparent/weiß (kein
+      // Vollfarb-Block) — Fortsetzungsseiten übernehmen denselben dezenten
+      // Stil statt eines vollen Farbblocks.
       l.style.backgroundColor = 'transparent';
       l.style.color = '#333';
       l.style.display = 'table-cell';
       l.style.verticalAlign = 'top';
       l.style.width = (cvLeft ? cvLeft.offsetWidth : 240) + 'px';
       l.style.padding = '1.25rem 1.25rem 1.5rem 1.75rem';
-      l.style.borderRight = `1px solid ${col}22`;
+      l.style.borderRight = tplForP2 === 'ats' ? '1px solid #e2e2e2' : `1px solid ${col}22`;
+      const labelColor = tplForP2 === 'ats' ? '#161616' : col;
+      const borderColor = tplForP2 === 'ats' ? '#ccc' : `${col}33`;
       l.innerHTML = `<div style="font-size:8.5px;font-weight:700;
-        letter-spacing:0.1em;text-transform:uppercase;color:${col};
+        letter-spacing:0.1em;text-transform:uppercase;color:${labelColor};
         padding-bottom:8px;margin-bottom:10px;
-        border-bottom:1.5px solid ${col}33;">${h(name || '')} — Fortsetzung</div>`;
+        border-bottom:1.5px solid ${borderColor};">${h(name || '')} — Fortsetzung</div>`;
       return;
     }
 
