@@ -1179,8 +1179,8 @@ function render(){
   const col=state.color, font=state.font;
   // Template-Klasse auf cv-paper setzen
   const tpl = (state && state.template) ? state.template : 'classic';
-  const isPureAtsTpl = (tpl === 'ats' || tpl === 'ats2' || tpl === 'ats3'); // reine ATS-Vorlagen: Führerschein ohne Farbrahmen
-  ['classic','modern','minimal','berlin','ats','ats2','ats3'].forEach(t2 => {
+  const isPureAtsTpl = (tpl === 'ats' || tpl === 'ats2' || tpl === 'ats3' || tpl === 'ats4'); // reine ATS-Vorlagen: Führerschein ohne Farbrahmen
+  ['classic','modern','minimal','berlin','ats','ats2','ats3','ats4'].forEach(t2 => {
     document.getElementById('cv-paper')?.classList.toggle('tpl-' + t2, t2 === tpl);
     document.getElementById('cv-paper-2')?.classList.toggle('tpl-' + t2, t2 === tpl);
   });
@@ -1573,7 +1573,7 @@ function render(){
     // Rechte Spalte (schmal): Skills / Sprachen / Kompetenzen / Interessen —
     // bewusst als reine Textlisten ohne Balken/Punkte-Grafik, rein schwarz.
     let atsSide='';
-    const atsHead=lbl=>`<div style="font-size:${Math.round(9*fScale)}px;font-weight:800;
+    const atsHead=lbl=>`<div class="cv-section-head" style="display:block;font-size:${Math.round(9*fScale)}px;font-weight:800;
       letter-spacing:0.08em;text-transform:uppercase;color:#161616;
       border-bottom:1.5px solid #ccc;padding-bottom:4px;margin:0 0 8px;">${lbl} <span style="color:${col};">+</span></div>`;
     if(activeSkills.length){
@@ -1660,7 +1660,7 @@ function render(){
     // Einspaltig: Hauptinhalt + Skills/Sprachen/Kompetenzen/Interessen
     // hintereinander im selben Textfluss (kein zweispaltiges Layout).
     let ats2Side='';
-    const atsHead2=lbl=>`<div style="font-size:${Math.round(9*fScale)}px;font-weight:800;
+    const atsHead2=lbl=>`<div class="cv-section-head" style="display:block;font-size:${Math.round(9*fScale)}px;font-weight:800;
       letter-spacing:0.08em;text-transform:uppercase;color:#161616;
       border-bottom:1.5px solid #ccc;padding-bottom:4px;margin:16px 0 8px;">${lbl}</div>`;
     if(activeSkills.length){
@@ -1717,7 +1717,7 @@ function render(){
       <div style="height:1px;background:#bbb;margin:0 32px 16px;"></div>`;
 
     let ats3Side='';
-    const atsHead3=lbl=>`<div style="font-size:${Math.round(9*fScale)}px;font-weight:700;
+    const atsHead3=lbl=>`<div class="cv-section-head" style="display:block;font-size:${Math.round(9*fScale)}px;font-weight:700;
       letter-spacing:0.04em;text-transform:uppercase;color:#161616;
       border-bottom:1px solid #bbb;padding-bottom:4px;margin:14px 0 8px;">${lbl}</div>`;
     if(activeSkills.length){
@@ -1754,6 +1754,70 @@ function render(){
     if(oldAts2Header3) oldAts2Header3.remove();
     const oldBerlinBand3=paper.querySelector('.tpl-berlin-band');
     if(oldBerlinBand3) oldBerlinBand3.remove();
+    const oldAts4Header3=paper.querySelector('.tpl-ats4-header');
+    if(oldAts4Header3) oldAts4Header3.remove();
+
+  }else if(tpl==='ats4'){
+    // ATS SERIF: traditioneller/seriöser Stil — zentrierter Name in
+    // Serifenschrift, Doppellinie darunter (klassisches Bewerbungs-Layout),
+    // Abschnittsüberschriften mit Orphan-Schutzklasse. Weiterhin komplett
+    // schwarz/weiß, keinerlei Farbflächen.
+    paper.style.display='block';
+    const contactBits4=[
+      phone?h(phone):'', email?h(email):'', address?h(address):'',
+      linkedin?`<a href="${linkedin.startsWith('http')?linkedin:'https://'+linkedin}" target="_blank" style="color:#222;text-decoration:underline;">LinkedIn</a>`:'',
+    ].filter(Boolean).join('&nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;');
+    const ats4Header=`
+      <div style="text-align:center;padding:28px 32px 14px;">
+        <div style="font-family:Georgia,'Times New Roman',serif;font-size:${Math.round(25*fScale)}px;
+          font-weight:700;letter-spacing:0.03em;color:#161616;">${h(name)}</div>
+        <div style="font-family:Georgia,'Times New Roman',serif;font-style:italic;
+          font-size:${Math.round(12*fScale)}px;color:#555;margin-top:4px;">${h(role)}</div>
+        <div style="font-size:${Math.round(9.5*fScale)}px;color:#444;margin-top:10px;">${contactBits4}</div>
+      </div>
+      <div style="height:1px;background:#333;margin:0 32px;"></div>
+      <div style="height:1px;background:#333;margin:2px 32px 18px;"></div>`;
+
+    let ats4Side='';
+    const atsHead4=lbl=>`<div class="cv-section-head" style="display:block;font-family:Georgia,'Times New Roman',serif;
+      font-size:${Math.round(11*fScale)}px;font-weight:700;letter-spacing:0.06em;
+      color:#161616;margin:16px 0 8px;">${lbl}</div>`;
+    if(activeSkills.length){
+      ats4Side+=atsHead4(t('cvSkills'));
+      ats4Side+=`<div style="font-size:${Math.round(10.5*fScale)}px;color:#333;line-height:1.7;">${activeSkills.map(id=>h(val('sk-name-'+id))).filter(Boolean).join(' — ')}</div>`;
+    }
+    if(activeLangs.length){
+      ats4Side+=atsHead4(t('cvLanguages'));
+      ats4Side+=`<div style="font-size:${Math.round(10.5*fScale)}px;color:#333;line-height:1.7;">${activeLangs.map(id=>{const n=val('ln-name-'+id),lv=val('ln-lvl-'+id);const lbl={native:t('optNative'),advanced:t('optAdvanced'),intermediate:t('optIntermediate'),basic:t('optBasic')}[lv]||lv;return n?`${h(n)}${lbl?` (${h(lbl)})`:''}`:'';}).filter(Boolean).join(' — ')}</div>`;
+    }
+    if(komps){
+      ats4Side+=atsHead4(t('cvKomps'));
+      ats4Side+=`<div style="font-size:${Math.round(10.5*fScale)}px;color:#333;line-height:1.7;">${komps.split('\n').map(k=>h(k.trim())).filter(Boolean).join(' — ')}</div>`;
+    }
+    if(hobbies){
+      ats4Side+=atsHead4(t('cvInterests'));
+      ats4Side+=`<div style="font-size:${Math.round(10.5*fScale)}px;color:#333;line-height:1.7;">${h(hobbies)}</div>`;
+    }
+
+    cvLeft.style.display='none'; cvLeft.innerHTML='';
+    cvRight.style.backgroundColor='transparent'; cvRight.style.color='#222';
+    cvRight.style.display='block'; cvRight.style.width='100%';
+    cvRight.style.padding='0 32px 24px';
+    cvRight.innerHTML=rightHTML+ats4Side;
+
+    const oldAts4Header=paper.querySelector('.tpl-ats4-header');
+    const ats4HeaderEl=oldAts4Header||document.createElement('div');
+    ats4HeaderEl.className='tpl-ats4-header';
+    ats4HeaderEl.innerHTML=ats4Header;
+    if(!oldAts4Header) paper.insertBefore(ats4HeaderEl, paper.firstChild);
+    const oldAtsHeader4=paper.querySelector('.tpl-ats-header');
+    if(oldAtsHeader4) oldAtsHeader4.remove();
+    const oldAts2Header4=paper.querySelector('.tpl-ats2-header');
+    if(oldAts2Header4) oldAts2Header4.remove();
+    const oldAts3Header4=paper.querySelector('.tpl-ats3-header');
+    if(oldAts3Header4) oldAts3Header4.remove();
+    const oldBerlinBand4=paper.querySelector('.tpl-berlin-band');
+    if(oldBerlinBand4) oldBerlinBand4.remove();
 
   }else{
     // CLASSIC (default): bestehender Code
@@ -1772,6 +1836,8 @@ function render(){
     if(oldAts2Band) oldAts2Band.remove();
     const oldAts3Band=paper.querySelector('.tpl-ats3-header');
     if(oldAts3Band) oldAts3Band.remove();
+    const oldAts4Band=paper.querySelector('.tpl-ats4-header');
+    if(oldAts4Band) oldAts4Band.remove();
     cvLeft.innerHTML=leftHTML;
     cvRight.innerHTML=rightHTML;
   }
@@ -1938,7 +2004,7 @@ function autoPageBreak(fScaleArg, col, font, name, role) {
   function styleLeftCell(l, pageNum) {
     if (!l) return;
 
-    if (tplForP2 === 'minimal' || tplForP2 === 'ats2' || tplForP2 === 'ats3') { l.style.display = 'none'; l.innerHTML = ''; return; }
+    if (tplForP2 === 'minimal' || tplForP2 === 'ats2' || tplForP2 === 'ats3' || tplForP2 === 'ats4') { l.style.display = 'none'; l.innerHTML = ''; return; }
 
     if (tplForP2 === 'modern') {
       // MODERN: Seite 1 hat nur einen SCHMALEN, farbigen Header-Balken —
@@ -1991,7 +2057,7 @@ function autoPageBreak(fScaleArg, col, font, name, role) {
   // Tabellenzelle neben der Sidebar).
   function styleRightCell(r) {
     if (!r) return;
-    const blockLayout = (tplForP2 === 'minimal' || tplForP2 === 'modern' || tplForP2 === 'ats2' || tplForP2 === 'ats3');
+    const blockLayout = (tplForP2 === 'minimal' || tplForP2 === 'modern' || tplForP2 === 'ats2' || tplForP2 === 'ats3' || tplForP2 === 'ats4');
     r.style.display         = blockLayout ? 'block' : 'table-cell';
     r.style.verticalAlign   = 'top';
     r.style.backgroundColor = '#fff';
@@ -2019,7 +2085,7 @@ function autoPageBreak(fScaleArg, col, font, name, role) {
     // Modern läuft einspaltig (Block), alle anderen als Tabelle — die
     // globale CSS-Regel für "display:block" gilt nur für #cv-paper (Seite 1),
     // NICHT für dynamisch angelegte Fortsetzungsseiten mit anderer ID.
-    paperEl.style.display    = (tplForP2 === 'modern' || tplForP2 === 'ats2' || tplForP2 === 'ats3') ? 'block' : 'table';
+    paperEl.style.display    = (tplForP2 === 'modern' || tplForP2 === 'ats2' || tplForP2 === 'ats3' || tplForP2 === 'ats4') ? 'block' : 'table';
     paperEl.style.marginTop  = '2rem';
     paperEl.style.fontFamily = '"Source Sans 3",sans-serif';
     // Fortsetzungsseiten NICHT künstlich auf die volle A4-Mindesthöhe
@@ -2065,7 +2131,7 @@ function autoPageBreak(fScaleArg, col, font, name, role) {
   let pageNum = 1;
   let currentPaperEl = paper;
   let rightRemaining = children;
-  let leftRemaining  = (tplForP2 !== 'minimal' && tplForP2 !== 'ats2' && tplForP2 !== 'ats3') ? Array.from(cvLeft.children) : [];
+  let leftRemaining  = (tplForP2 !== 'minimal' && tplForP2 !== 'ats2' && tplForP2 !== 'ats3' && tplForP2 !== 'ats4') ? Array.from(cvLeft.children) : [];
   const MAX_PAGES = 12; // absolute Sicherheitsgrenze gegen Endlosschleifen
 
   // ── 2-SEITEN-GRENZE ────────────────────────────────────────
@@ -2126,7 +2192,7 @@ function autoPageBreak(fScaleArg, col, font, name, role) {
 
     currentPaperEl  = document.getElementById('cv-paper-' + pageNum);
     rightRemaining  = Array.from(rightEl.children); // neu einlesen: live Elemente dieser Seite
-    leftRemaining   = (tplForP2 !== 'minimal' && tplForP2 !== 'ats2' && tplForP2 !== 'ats3') ? Array.from(leftEl.children) : [];
+    leftRemaining   = (tplForP2 !== 'minimal' && tplForP2 !== 'ats2' && tplForP2 !== 'ats3' && tplForP2 !== 'ats4') ? Array.from(leftEl.children) : [];
   }
 
   // ── Manuelle Seite-2-Inhalte anhängen ─────────────────────
@@ -2462,7 +2528,7 @@ function generateDesignPDFBytes(){
             // die ist bereits korrekt (transparent bei Modern/Berlin/
             // Minimal, farbig bei Classic) auf dem Live-Element gesetzt
             // und wird beim Klonen automatisch übernommen.
-            const isTableLayout = state.template !== 'modern' && state.template !== 'minimal' && state.template !== 'ats2' && state.template !== 'ats3';
+            const isTableLayout = state.template !== 'modern' && state.template !== 'minimal' && state.template !== 'ats2' && state.template !== 'ats3' && state.template !== 'ats4';
             if(cP){ cP.style.minHeight=fullH+'px'; if(isTableLayout) cP.style.height=fullH+'px'; }
             if(cL && isTableLayout){ cL.style.height=fullH+'px'; cL.style.minHeight=fullH+'px'; }
           }
