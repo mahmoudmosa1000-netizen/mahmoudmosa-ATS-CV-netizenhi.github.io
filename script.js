@@ -1491,7 +1491,28 @@ function render(){
     </div>`;
     cvRight.style.backgroundColor='#fff';
     cvRight.style.padding='1.5rem 2rem';
-    cvRight.innerHTML=rightHTML;
+    // Technische Skills fehlten in Modern bisher komplett (weder im Header
+    // noch in rightHTML enthalten — anders als bei den anderen Vorlagen,
+    // die eine Sidebar dafür haben). Als eigener Abschnitt mit Pill-Tags
+    // passend zum Akzentfarben-Stil der Vorlage ergänzt.
+    let modernSkillsHTML='';
+    if(activeSkills.length){
+      const names=activeSkills.map(id=>val('sk-name-'+id)).filter(Boolean);
+      if(names.length){
+        modernSkillsHTML=`<div class="cv-section-head" style="color:${col};">${t('cvSkills')}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;">
+            ${names.map(n=>`<span style="background:${col}18;border:1px solid ${col}44;border-radius:5px;padding:3px 11px;font-size:${Math.round(10.5*fScale)}px;font-weight:600;color:${col};">${h(n)}</span>`).join('')}
+          </div>`;
+      }
+    }
+    if(activeLangs.length){
+      const langNamesModern=activeLangs.map(id=>{const n=val('ln-name-'+id),lv=val('ln-lvl-'+id);const lbl={native:t('optNative'),advanced:t('optAdvanced'),intermediate:t('optIntermediate'),basic:t('optBasic')}[lv]||lv;return n?`${h(n)}${lbl?` (${h(lbl)})`:''}`:'';}).filter(Boolean);
+      if(langNamesModern.length){
+        modernSkillsHTML+=`<div class="cv-section-head" style="color:${col};">${t('cvLanguages')}</div>
+          <div style="font-size:${Math.round(10.5*fScale)}px;color:#444;margin-bottom:14px;">${langNamesModern.join(' · ')}</div>`;
+      }
+    }
+    cvRight.innerHTML=rightHTML+modernSkillsHTML;
     paper.style.display='block';
     cvRight.style.display='block';
     cvLeft.style.display='block';
