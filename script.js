@@ -28,7 +28,7 @@ let zoom=1;
 let expCount=0, eduCount=0, p2Count=0, eqCount=0, refCount=0, certCount=0, projCount=0;
 let undoStack=[];
 let _autoPageBreakRAF = null; // Modul-weiter RAF-Handle — verhindert überlappende autoPageBreak-Aufrufe
-let sectionOrder=['profile','experience','education','komps','hobbies','extraquals','referenzen','zertifikate','projekte','folio'];
+let sectionOrder=['profile','experience','education','skills','komps','hobbies','extraquals','referenzen','zertifikate','projekte','folio'];
 let autoSaveTimer=null;
 let dragSrcId=null, dragType=null;
 
@@ -55,14 +55,14 @@ const FONTS=[
 ];
 function getSectionLabels(){return{
   profile:t('cvProfile'), experience:t('cvExperience'),
-  education:t('cvEducation'), komps:t('cvKomps'),
+  education:t('cvEducation'), skills:t('cvSkills'), komps:t('cvKomps'),
   hobbies:t('cvInterests'), extraquals:t('cvExtraQual'),
   referenzen:t('cvReferenzen'), zertifikate:t('cvZertifikate'), projekte:t('cvProjekte'),
   folio:t('cvFolioSection')||'Portfolio & Links',
 };}
 // Keep for import/export key validation only (values not shown in UI)
 const SECTION_LABELS={
-  profile:'profile', experience:'experience', education:'education', komps:'komps',
+  profile:'profile', experience:'experience', education:'education', skills:'skills', komps:'komps',
   hobbies:'hobbies', extraquals:'extraquals', referenzen:'referenzen',
   zertifikate:'zertifikate', projekte:'projekte', folio:'folio',
 };
@@ -832,7 +832,7 @@ function exportJSON() {
 
 // ─── SECTION ORDER RESET ─────────────────────────
 function resetSectionOrder() {
-  sectionOrder = ['profile','experience','education','komps','hobbies','extraquals','referenzen','zertifikate','projekte','folio'];
+  sectionOrder = ['profile','experience','education','skills','komps','hobbies','extraquals','referenzen','zertifikate','projekte','folio'];
   buildSectionOrderUI();
   render();
   showToast('✓ '+t('toastOrderReset'));
@@ -864,7 +864,25 @@ function importJsonResume(d){
   }
   if(Array.isArray(d.work)) d.work.forEach(w=>addEntry('exp',{title:w.position||'',company:w.name||w.company||'',from:w.startDate||'',to:w.endDate||'heute',desc:w.summary||(Array.isArray(w.highlights)?w.highlights.join('\n'):'')}));
   if(Array.isArray(d.education)) d.education.forEach(e=>addEntry('edu',{degree:[e.studyType,e.area].filter(Boolean).join(' – ')||e.institution||'',school:e.institution||'',from:e.startDate||'',to:e.endDate||''}));
-  if(Array.isArray(d.skills)) setVal('f-komps',d.skills.map(s=>s.name).filter(Boolean).join('\n'));
+  if(Array.isArray(d.skills)) d.skills.forEach(s=>{
+    if(!s.name) return;
+    // "level" kommt im JSON-Resume-Standard meist als Prozent-String ("25%")
+    // oder als Text (z.B. "Fortgeschritten") — beides robust in eine Zahl
+    // 0–100 umwandeln, damit es dem internen Skill-Level-Format entspricht.
+    let pct=70;
+    if(s.level){
+      const numMatch=String(s.level).match(/\d+/);
+      if(numMatch) pct=Math.min(100,Math.max(0,parseInt(numMatch[0])));
+      else{
+        const txt=String(s.level).toLowerCase();
+        if(txt.includes('expert')) pct=90;
+        else if(txt.includes('fortgeschritten')||txt.includes('advanced')) pct=70;
+        else if(txt.includes('mittel')||txt.includes('intermediate')) pct=50;
+        else if(txt.includes('einstei')||txt.includes('beginner')||txt.includes('basic')) pct=25;
+      }
+    }
+    addSkill({name:s.name,pct});
+  });
   if(Array.isArray(d.languages)){
     const m={native:'native',fluent:'advanced',advanced:'advanced',intermediate:'intermediate',beginner:'basic'};
     d.languages.forEach(l=>addLang({name:l.language||'',lvl:m[(l.fluency||'').toLowerCase()]||'intermediate'}));
@@ -884,6 +902,7 @@ function importJsonResume(d){
     if(cb.fontScale){setVal('f-font-scale',cb.fontScale);const lb=document.getElementById('font-scale-label');if(lb)lb.textContent=cb.fontScale+'%';}
     if(cb.lineHeight){setVal('f-line-height',cb.lineHeight);const lb=document.getElementById('line-height-label');if(lb)lb.textContent=cb.lineHeight;}
     if(cb.rightBg)setVal('f-right-bg',cb.rightBg);
+    if(cb.skillsPos)setVal('f-skills-pos',cb.skillsPos);
     if(cb.kompsPos)setVal('f-komps-pos',cb.kompsPos);
     if(cb.hobbiesPos)setVal('f-hobbies-pos',cb.hobbiesPos);
     if(cb.licensePos)setVal('f-license-pos',cb.licensePos);
@@ -1248,11 +1267,7 @@ function render(){
     </div>`;
 
   const activeSkills=state.skills.filter(id=>val('sk-name-'+id));
-  if(activeSkills.length){
-    leftHTML+=`<div class="cv-l-section"><div class="cv-l-section-title">${t('cvSkills')}</div>`;
-    activeSkills.forEach(id=>{const n=val('sk-name-'+id),p=Math.min(100,Math.max(0,parseInt(val('sk-pct-'+id))||70));const skillMode=document.getElementById('skill-display-mode')?.value||'bar';const lvlMap={90:'Experte',70:'Fortgeschritten',50:'Mittelstufe',25:'Einsteiger'};const lvlText=lvlMap[p]||(p>=85?'Experte':p>=60?'Fortgeschritten':p>=35?'Mittelstufe':'Einsteiger');if(skillMode==='text'){leftHTML+=`<div class="cv-skill-bar cv-skill-text-mode"><div class="cv-skill-name" style="font-size:${Math.round(11*fScale)}px;">${h(n)}</div><div class="cv-skill-level-text" style="font-size:${Math.round(9*fScale)}px;">${lvlText}</div></div>`;}else{leftHTML+=`<div class="cv-skill-bar"><div class="cv-skill-name" style="font-size:${Math.round(11*fScale)}px;">${h(n)}</div><div class="cv-skill-track"><div class="cv-skill-fill" style="width:${p}%"></div></div></div>`;}});
-    leftHTML+=`</div>`;
-  }
+  const skillsPos=(document.getElementById('f-skills-pos')||{}).value||'left';
   const activeLangs=state.langs.filter(id=>val('ln-name-'+id));
   if(activeLangs.length){
     leftHTML+=`<div class="cv-l-section"><div class="cv-l-section-title">${t('cvLanguages')}</div>`;
@@ -1308,6 +1323,24 @@ function render(){
       if(!entries.length) return '';
       let s=`<div class="cv-section-head" style="color:${col};font-size:${Math.round(8.5*fScale)}px;">${t('cvEducation')}</div>`;
       entries.forEach(e=>{s+=`<div class="cv-entry" style="border-left-color:${colLight};"><div class="cv-entry-head"><span class="cv-entry-title" style="font-size:${Math.round(12.5*fScale)}px;">${h(e.degree)}</span><span class="cv-entry-date" style="color:${colDark2};font-size:${Math.round(10*fScale)}px;">${h(e.from)}${e.to?' – '+h(e.to):''}</span></div>${e.school?`<div class="cv-entry-sub" style="color:${colDark2};font-size:${Math.round(11*fScale)}px;">${h(e.school)}</div>`:''}</div>`;});
+      return s;
+    },
+    skills:()=>{
+      if(!activeSkills.length) return '';
+      const skillMode=document.getElementById('skill-display-mode')?.value||'bar';
+      const lvlMap={90:'Experte',70:'Fortgeschritten',50:'Mittelstufe',25:'Einsteiger'};
+      if(skillsPos==='left'){
+        leftHTML+=`<div class="cv-l-section"><div class="cv-l-section-title">${t('cvSkills')}</div>`;
+        activeSkills.forEach(id=>{const n=val('sk-name-'+id),p=Math.min(100,Math.max(0,parseInt(val('sk-pct-'+id))||70));const lvlText=lvlMap[p]||(p>=85?'Experte':p>=60?'Fortgeschritten':p>=35?'Mittelstufe':'Einsteiger');if(skillMode==='text'){leftHTML+=`<div class="cv-skill-bar cv-skill-text-mode"><div class="cv-skill-name" style="font-size:${Math.round(11*fScale)}px;">${h(n)}</div><div class="cv-skill-level-text" style="font-size:${Math.round(9*fScale)}px;">${lvlText}</div></div>`;}else{leftHTML+=`<div class="cv-skill-bar"><div class="cv-skill-name" style="font-size:${Math.round(11*fScale)}px;">${h(n)}</div><div class="cv-skill-track"><div class="cv-skill-fill" style="width:${p}%"></div></div></div>`;}});
+        leftHTML+=`</div>`;
+        return '';
+      }
+      // rechts: als kompakte Balken/Text-Liste im Hauptbereich
+      let s=`<div class="cv-section-head" style="color:${col};font-size:${Math.round(8.5*fScale)}px;">${t('cvSkills')}</div>`;
+      activeSkills.forEach(id=>{const n=val('sk-name-'+id),p=Math.min(100,Math.max(0,parseInt(val('sk-pct-'+id))||70));const lvlText=lvlMap[p]||(p>=85?'Experte':p>=60?'Fortgeschritten':p>=35?'Mittelstufe':'Einsteiger');
+        if(skillMode==='text'){s+=`<div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:${Math.round(10.5*fScale)}px;"><span style="font-weight:600;color:#333;">${h(n)}</span><span style="color:#888;">${lvlText}</span></div>`;}
+        else{s+=`<div style="margin-bottom:7px;"><div style="font-size:${Math.round(10.5*fScale)}px;font-weight:600;color:#333;">${h(n)}</div><div style="height:4px;background:#eee;border-radius:2px;margin-top:3px;"><div style="height:100%;width:${p}%;background:${col};border-radius:2px;"></div></div></div>`;}
+      });
       return s;
     },
     komps:()=>{
@@ -2348,7 +2381,7 @@ function collectData(){
       overlaySize:parseInt((document.getElementById('fl-os-'+l.id)||{}).value||l.overlaySize||64),
     })),
     summary:val('f-summary'),goal:val('f-goal'),komps:val('f-komps'),hobbies:val('f-hobbies'),
-    kompsPos:val('f-komps-pos')||'right',hobbiesPos:val('f-hobbies-pos')||'right',licensePos:val('f-license-pos')||'right',
+    skillsPos:val('f-skills-pos')||'left',kompsPos:val('f-komps-pos')||'right',hobbiesPos:val('f-hobbies-pos')||'right',licensePos:val('f-license-pos')||'right',
     color:state.color,font:state.font,photoData:state.photoData,
     extraPages: state.extraPages || 0,
     atsStripeColors: state.atsStripeColors || ['#2563eb','#dc2626','#eab308'],
@@ -2392,7 +2425,7 @@ function applyData(d){
   if(folioListEl){folioListEl.innerHTML='';}_folioLinks=[];_folioCount=0;
   if(Array.isArray(d.folioLinks))d.folioLinks.forEach(l=>addFolioLink(l));
   setVal('f-summary',d.summary);setVal('f-goal',d.goal);setVal('f-komps',d.komps);setVal('f-hobbies',d.hobbies);
-  setVal('f-komps-pos',d.kompsPos||'right');setVal('f-hobbies-pos',d.hobbiesPos||'right');setVal('f-license-pos',d.licensePos||'right');
+  setVal('f-skills-pos',d.skillsPos||'left');setVal('f-komps-pos',d.kompsPos||'right');setVal('f-hobbies-pos',d.hobbiesPos||'right');setVal('f-license-pos',d.licensePos||'right');
   setVal('f-license-note',d.licenseNote);setVal('f-right-bg',d.rightBg||'#ffffff');
   setVal('p2-title',d.p2title);setVal('p2-freetext',d.p2free);
   if(d.fontScale){setVal('f-font-scale',d.fontScale);const lb=document.getElementById('font-scale-label');if(lb)lb.textContent=d.fontScale+'%';}

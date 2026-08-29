@@ -356,6 +356,13 @@
       <div class="section-divider" data-i18n="sectionTechSkills">Technische Skills</div>
       <div id="skill-list"></div>
       <button class="btn-add" onclick="addSkill()" data-i18n="btnAddSkill">+ Skill hinzufügen</button>
+      <div class="form-group" style="margin-top:0.75rem;">
+        <label data-i18n="labelPosInCV">Position im Lebenslauf</label>
+        <select id="f-skills-pos" onchange="render()">
+          <option value="left" data-i18n="optLeft">⬅ Links (Seitenleiste)</option>
+          <option value="right" data-i18n="optRight">➡ Rechts</option>
+        </select>
+      </div>
 
       <div class="skill-display-toggle-wrap" style="margin-top:1.5rem;">
         <span class="sdtw-label">Sprachen-Darstellung auf dem CV:</span>
