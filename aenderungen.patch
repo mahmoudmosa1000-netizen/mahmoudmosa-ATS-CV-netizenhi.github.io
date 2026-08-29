@@ -1,0 +1,191 @@
+diff --git a/i18n.js b/i18n.js
+index 78dad48..29167ea 100644
+--- a/i18n.js
++++ b/i18n.js
+@@ -332,6 +332,7 @@ const TRANSLATIONS = {
+ 
+     // ── Text-Nodes ──
+     profilesLocalHint:   'Profile werden lokal im Browser gespeichert. Max. 5 Profile.',
++    privacyBadge:        '🔒 Daten bleiben lokal',
+     dragHint:            'Einträge per Drag & Drop umsortieren ⠿',
+     btnJSONImport:       'JSON importieren',
+     hintJSONFormat:      'JSON Resume Format',
+@@ -748,6 +749,7 @@ const TRANSLATIONS = {
+ 
+     // Text nodes
+     profilesLocalHint:   'Profiles are saved locally in the browser. Max. 5 profiles.',
++    privacyBadge:        '🔒 Data stays local',
+     dragHint:            'Drag & drop entries to reorder ⠿',
+     btnJSONImport:       'Import JSON',
+     hintJSONFormat:      'JSON Resume format',
+@@ -1154,6 +1156,7 @@ const TRANSLATIONS = {
+ 
+     // ── نصوص ظاهرة ──
+     profilesLocalHint:   'تُحفظ الملفات محليًا في المتصفح. بحد أقصى 5 ملفات.',
++    privacyBadge:        '🔒 تبقى البيانات محلية',
+     dragHint:            'اسحب الإدخالات لإعادة ترتيبها ⠿',
+     btnJSONImport:       'استيراد JSON',
+     hintJSONFormat:      'تنسيق JSON Resume',
+diff --git a/index.html b/index.html
+index ce14bd2..4782ee3 100644
+--- a/index.html
++++ b/index.html
+@@ -3,7 +3,15 @@
+ <head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+-  <title>CV Builder</title>
++  <title>CV Builder – Kostenloser ATS-Lebenslauf-Generator</title>
++  <meta name="description" content="Erstelle kostenlos einen professionellen, ATS-optimierten Lebenslauf direkt im Browser. Mehrsprachig (DE/EN/AR), mit QR-Code-Links, KI-Textassistent und mehreren Vorlagen – alle Daten bleiben lokal auf deinem Gerät.">
++  <meta property="og:title" content="CV Builder – Kostenloser ATS-Lebenslauf-Generator">
++  <meta property="og:description" content="Erstelle kostenlos einen professionellen, ATS-optimierten Lebenslauf direkt im Browser. Mehrsprachig, mit QR-Code-Links und mehreren Vorlagen.">
++  <meta property="og:type" content="website">
++  <meta property="og:locale" content="de_DE">
++  <meta name="twitter:card" content="summary">
++  <meta name="twitter:title" content="CV Builder – Kostenloser ATS-Lebenslauf-Generator">
++  <meta name="twitter:description" content="Erstelle kostenlos einen professionellen, ATS-optimierten Lebenslauf direkt im Browser.">
+   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
+   <script src="html2canvas.min.js"></script>
+   <script src="jspdf.umd.min.js"></script>
+@@ -16,6 +24,7 @@
+ <!-- ── TOP BAR ── -->
+ <div class="topbar">
+   <div class="topbar-logo" data-i18n="appTitle">CV <span>Builder</span></div>
++  <span class="privacy-badge" title="Alle Eingaben werden ausschließlich lokal in deinem Browser gespeichert – nichts wird an einen Server gesendet." data-i18n="privacyBadge" style="font-size:10.5px;color:rgba(255,255,255,0.5);border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:3px 10px;margin-left:10px;white-space:nowrap;">🔒 Daten bleiben lokal</span>
+   <div class="topbar-actions">
+     <div class="lang-switcher">
+       <button class="lang-btn active" data-lang="de" onclick="setLang('de')">🇩🇪 DE</button>
+@@ -23,18 +32,18 @@
+       <button class="lang-btn"        data-lang="ar" onclick="setLang('ar')">🇸🇾 عر</button>
+     </div>
+     <span id="autosave-indicator" style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.05em;margin-right:2px;" title="Automatisch gespeichert"></span>
+-    <button class="btn btn-ghost btn-icon" onclick="openProfileModal()"  title="Profile verwalten">👤</button>
+-    <button class="btn btn-ghost btn-icon" onclick="restartOnboarding()" title="Hilfe & Einführung">❓</button>
+-    <button class="btn btn-ghost btn-icon" onclick="undoDelete()" id="undo-btn" title="Rückgängig (Ctrl+Z)" style="opacity:0.4;cursor:not-allowed;" disabled>↩</button>
+-    <button class="btn btn-ghost btn-icon" onclick="triggerImport()" title="JSON Resume importieren">📥</button>
++    <button class="btn btn-ghost btn-icon" onclick="openProfileModal()"  title="Profile verwalten" aria-label="Profile verwalten">👤</button>
++    <button class="btn btn-ghost btn-icon" onclick="restartOnboarding()" title="Hilfe & Einführung" aria-label="Hilfe & Einführung">❓</button>
++    <button class="btn btn-ghost btn-icon" onclick="undoDelete()" id="undo-btn" title="Rückgängig (Ctrl+Z)" aria-label="Rückgängig" style="opacity:0.4;cursor:not-allowed;" disabled>↩</button>
++    <button class="btn btn-ghost btn-icon" onclick="triggerImport()" title="JSON Resume importieren" aria-label="JSON Resume importieren">📥</button>
+     <button class="btn btn-ghost btn-sm"   onclick="resetAll()" data-i18n="btnReset">Zurücksetzen</button>
+-    <button class="btn btn-ghost btn-sm"   onclick="saveData()"          data-i18n="btnSave">💾</button>
++    <button class="btn btn-ghost btn-sm"   onclick="saveData()"          data-i18n="btnSave" aria-label="Speichern">💾</button>
+     <span class="topbar-sep" aria-hidden="true"></span>
+     <div class="pdf-download-group">
+       <button class="btn btn-primary" onclick="runHealthCheck('design')" title="Nur die visuelle Design-Version, ohne ATS-Textanhang">🎨 Design-CV</button>
+       <button class="btn btn-primary" onclick="runHealthCheck('ats')" title="Nur der maschinenlesbare ATS-Text, ohne Grafik">🎯 ATS-Text</button>
+     </div>
+-    <button class="btn btn-ghost" onclick="exportPDF()"         data-i18n="btnPrint">🖨</button>
++    <button class="btn btn-ghost" onclick="exportPDF()"         data-i18n="btnPrint" aria-label="Drucken / Als PDF exportieren">🖨</button>
+   </div>
+ </div>
+ 
+@@ -165,7 +174,7 @@
+       </div>
+       <div id="photo-preview-section" style="display:none;">
+         <div class="photo-preview-wrap">
+-          <img id="photo-preview-img" class="photo-preview-img" src="" alt="">
++          <img id="photo-preview-img" class="photo-preview-img" src="" alt="Profilfoto-Vorschau">
+           <div class="photo-preview-info">
+             <div class="photo-preview-name" id="photo-preview-name" data-i18n="labelYourPhoto">Dein Foto</div>
+             <div class="photo-preview-sub" data-i18n="photoShown">Wird im Lebenslauf angezeigt</div>
+diff --git a/script.js b/script.js
+index 99982af..a00c0f0 100644
+--- a/script.js
++++ b/script.js
+@@ -2,6 +2,36 @@
+ //  CV BUILDER — script.js  (v3 – alle Features)
+ // ═══════════════════════════════════════════════
+ 
++// ─── KI-API-Konfiguration ───────────────────────
++// Diese App läuft als statische Seite (GitHub Pages) und kann daher
++// die Anthropic-API NICHT direkt aus dem Browser aufrufen (kein API-Key
++// im Client, CORS blockiert den Request ohnehin).
++// Trage hier die URL deines eigenen Backend-Proxys ein (z. B. Cloudflare
++// Worker oder Vercel Function), der den Request serverseitig mit deinem
++// API-Key an https://api.anthropic.com/v1/messages weiterleitet.
++// Der Proxy muss denselben Response-Body wie die Anthropic-API liefern
++// (also { content: [{type:'text', text:'...'}], ... }).
++const AI_PROXY_URL = ''; // z.B. 'https://mein-proxy.example.workers.dev/api/ai'
++const AI_MODEL = 'claude-sonnet-4-20250514';
++
++async function callAiProxy(prompt, maxTokens) {
++  if (!AI_PROXY_URL) {
++    throw new Error('KI-Funktion ist nicht konfiguriert. Bitte AI_PROXY_URL in script.js setzen (siehe Kommentar am Dateianfang).');
++  }
++  const response = await fetch(AI_PROXY_URL, {
++    method: 'POST',
++    headers: { 'Content-Type': 'application/json' },
++    body: JSON.stringify({
++      model: AI_MODEL,
++      max_tokens: maxTokens || 1000,
++      messages: [{ role: 'user', content: prompt }],
++    }),
++  });
++  const data = await response.json();
++  if (data.error) throw new Error(data.error.message || 'API-Fehler');
++  return (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();
++}
++
+ let state = {
+   color:'#3b4f3a', font:'Playfair Display', photoData:'',
+   template:'classic',
+@@ -2699,19 +2729,8 @@ async function runAI() {
+   };
+ 
+   try {
+-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+-      method: 'POST',
+-      headers: { 'Content-Type': 'application/json' },
+-      body: JSON.stringify({
+-        model: 'claude-sonnet-4-20250514',
+-        max_tokens: 1000,
+-        messages: [{ role: 'user', content: prompts[aiType] || prompts.summary }],
+-      }),
+-    });
+-    const data = await response.json();
+-    if (data.error) throw new Error(data.error.message || 'API-Fehler');
+-    const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+-    _aiLastResult = text.trim();
++    const text = await callAiProxy(prompts[aiType] || prompts.summary, 1000);
++    _aiLastResult = text;
+ 
+     document.getElementById('ai-result-text').textContent = _aiLastResult;
+     document.getElementById('ai-result-wrap').style.display = 'block';
+@@ -2820,18 +2839,7 @@ Regeln:
+   };
+ 
+   try {
+-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+-      method: 'POST',
+-      headers: { 'Content-Type': 'application/json' },
+-      body: JSON.stringify({
+-        model: 'claude-sonnet-4-20250514',
+-        max_tokens: 600,
+-        messages: [{ role: 'user', content: prompts[mode] || prompts.improve }],
+-      }),
+-    });
+-    const data = await response.json();
+-    if (data.error) throw new Error(data.error.message || 'API-Fehler');
+-    const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();
++    const text = await callAiProxy(prompts[mode] || prompts.improve, 600);
+ 
+     if (!text) throw new Error('Leere Antwort');
+ 
+@@ -2885,15 +2893,7 @@ Name: ${d.name||'–'}, Rolle: ${d.role||'–'}
+ Stärken/Erfahrungen: ${fieldEl.value || '(keine – erstelle ein allgemeines Profil für die Rolle)'}
+ Sprache: ${langLabel}. ATS-optimiert. Nur der Text, keine Überschriften.`;
+   try {
+-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+-      method: 'POST',
+-      headers: { 'Content-Type': 'application/json' },
+-      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:400,
+-        messages:[{ role:'user', content: prompt }] }),
+-    });
+-    const data = await response.json();
+-    if (data.error) throw new Error(data.error.message);
+-    const text = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('').trim();
++    const text = await callAiProxy(prompt, 400);
+     const prev = fieldEl.value;
+     fieldEl.value = text;
+     fieldEl.dispatchEvent(new Event('input'));

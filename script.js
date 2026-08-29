@@ -2,6 +2,36 @@
 //  CV BUILDER — script.js  (v3 – alle Features)
 // ═══════════════════════════════════════════════
 
+// ─── KI-API-Konfiguration ───────────────────────
+// Diese App läuft als statische Seite (GitHub Pages) und kann daher
+// die Anthropic-API NICHT direkt aus dem Browser aufrufen (kein API-Key
+// im Client, CORS blockiert den Request ohnehin).
+// Trage hier die URL deines eigenen Backend-Proxys ein (z. B. Cloudflare
+// Worker oder Vercel Function), der den Request serverseitig mit deinem
+// API-Key an https://api.anthropic.com/v1/messages weiterleitet.
+// Der Proxy muss denselben Response-Body wie die Anthropic-API liefern
+// (also { content: [{type:'text', text:'...'}], ... }).
+const AI_PROXY_URL = ''; // z.B. 'https://mein-proxy.example.workers.dev/api/ai'
+const AI_MODEL = 'claude-sonnet-4-20250514';
+
+async function callAiProxy(prompt, maxTokens) {
+  if (!AI_PROXY_URL) {
+    throw new Error('KI-Funktion ist nicht konfiguriert. Bitte AI_PROXY_URL in script.js setzen (siehe Kommentar am Dateianfang).');
+  }
+  const response = await fetch(AI_PROXY_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: AI_MODEL,
+      max_tokens: maxTokens || 1000,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+  });
+  const data = await response.json();
+  if (data.error) throw new Error(data.error.message || 'API-Fehler');
+  return (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();
+}
+
 let state = {
   color:'#3b4f3a', font:'Playfair Display', photoData:'',
   template:'classic',
@@ -2699,19 +2729,8 @@ async function runAI() {
   };
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: prompts[aiType] || prompts.summary }],
-      }),
-    });
-    const data = await response.json();
-    if (data.error) throw new Error(data.error.message || 'API-Fehler');
-    const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
-    _aiLastResult = text.trim();
+    const text = await callAiProxy(prompts[aiType] || prompts.summary, 1000);
+    _aiLastResult = text;
 
     document.getElementById('ai-result-text').textContent = _aiLastResult;
     document.getElementById('ai-result-wrap').style.display = 'block';
@@ -2820,18 +2839,7 @@ Regeln:
   };
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 600,
-        messages: [{ role: 'user', content: prompts[mode] || prompts.improve }],
-      }),
-    });
-    const data = await response.json();
-    if (data.error) throw new Error(data.error.message || 'API-Fehler');
-    const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();
+    const text = await callAiProxy(prompts[mode] || prompts.improve, 600);
 
     if (!text) throw new Error('Leere Antwort');
 
@@ -2885,15 +2893,7 @@ Name: ${d.name||'–'}, Rolle: ${d.role||'–'}
 Stärken/Erfahrungen: ${fieldEl.value || '(keine – erstelle ein allgemeines Profil für die Rolle)'}
 Sprache: ${langLabel}. ATS-optimiert. Nur der Text, keine Überschriften.`;
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:400,
-        messages:[{ role:'user', content: prompt }] }),
-    });
-    const data = await response.json();
-    if (data.error) throw new Error(data.error.message);
-    const text = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('').trim();
+    const text = await callAiProxy(prompt, 400);
     const prev = fieldEl.value;
     fieldEl.value = text;
     fieldEl.dispatchEvent(new Event('input'));

@@ -332,6 +332,7 @@ const TRANSLATIONS = {
 
     // ── Text-Nodes ──
     profilesLocalHint:   'Profile werden lokal im Browser gespeichert. Max. 5 Profile.',
+    privacyBadge:        '🔒 Daten bleiben lokal',
     dragHint:            'Einträge per Drag & Drop umsortieren ⠿',
     btnJSONImport:       'JSON importieren',
     hintJSONFormat:      'JSON Resume Format',
@@ -748,6 +749,7 @@ const TRANSLATIONS = {
 
     // Text nodes
     profilesLocalHint:   'Profiles are saved locally in the browser. Max. 5 profiles.',
+    privacyBadge:        '🔒 Data stays local',
     dragHint:            'Drag & drop entries to reorder ⠿',
     btnJSONImport:       'Import JSON',
     hintJSONFormat:      'JSON Resume format',
@@ -1154,6 +1156,7 @@ const TRANSLATIONS = {
 
     // ── نصوص ظاهرة ──
     profilesLocalHint:   'تُحفظ الملفات محليًا في المتصفح. بحد أقصى 5 ملفات.',
+    privacyBadge:        '🔒 تبقى البيانات محلية',
     dragHint:            'اسحب الإدخالات لإعادة ترتيبها ⠿',
     btnJSONImport:       'استيراد JSON',
     hintJSONFormat:      'تنسيق JSON Resume',

@@ -3,7 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CV Builder</title>
+  <title>CV Builder – Kostenloser ATS-Lebenslauf-Generator</title>
+  <meta name="description" content="Erstelle kostenlos einen professionellen, ATS-optimierten Lebenslauf direkt im Browser. Mehrsprachig (DE/EN/AR), mit QR-Code-Links, KI-Textassistent und mehreren Vorlagen – alle Daten bleiben lokal auf deinem Gerät.">
+  <meta property="og:title" content="CV Builder – Kostenloser ATS-Lebenslauf-Generator">
+  <meta property="og:description" content="Erstelle kostenlos einen professionellen, ATS-optimierten Lebenslauf direkt im Browser. Mehrsprachig, mit QR-Code-Links und mehreren Vorlagen.">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="de_DE">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="CV Builder – Kostenloser ATS-Lebenslauf-Generator">
+  <meta name="twitter:description" content="Erstelle kostenlos einen professionellen, ATS-optimierten Lebenslauf direkt im Browser.">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
   <script src="html2canvas.min.js"></script>
   <script src="jspdf.umd.min.js"></script>
@@ -16,6 +24,7 @@
 <!-- ── TOP BAR ── -->
 <div class="topbar">
   <div class="topbar-logo" data-i18n="appTitle">CV <span>Builder</span></div>
+  <span class="privacy-badge" title="Alle Eingaben werden ausschließlich lokal in deinem Browser gespeichert – nichts wird an einen Server gesendet." data-i18n="privacyBadge" style="font-size:10.5px;color:rgba(255,255,255,0.5);border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:3px 10px;margin-left:10px;white-space:nowrap;">🔒 Daten bleiben lokal</span>
   <div class="topbar-actions">
     <div class="lang-switcher">
       <button class="lang-btn active" data-lang="de" onclick="setLang('de')">🇩🇪 DE</button>
@@ -23,18 +32,18 @@
       <button class="lang-btn"        data-lang="ar" onclick="setLang('ar')">🇸🇾 عر</button>
     </div>
     <span id="autosave-indicator" style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.05em;margin-right:2px;" title="Automatisch gespeichert"></span>
-    <button class="btn btn-ghost btn-icon" onclick="openProfileModal()"  title="Profile verwalten">👤</button>
-    <button class="btn btn-ghost btn-icon" onclick="restartOnboarding()" title="Hilfe & Einführung">❓</button>
-    <button class="btn btn-ghost btn-icon" onclick="undoDelete()" id="undo-btn" title="Rückgängig (Ctrl+Z)" style="opacity:0.4;cursor:not-allowed;" disabled>↩</button>
-    <button class="btn btn-ghost btn-icon" onclick="triggerImport()" title="JSON Resume importieren">📥</button>
+    <button class="btn btn-ghost btn-icon" onclick="openProfileModal()"  title="Profile verwalten" aria-label="Profile verwalten">👤</button>
+    <button class="btn btn-ghost btn-icon" onclick="restartOnboarding()" title="Hilfe & Einführung" aria-label="Hilfe & Einführung">❓</button>
+    <button class="btn btn-ghost btn-icon" onclick="undoDelete()" id="undo-btn" title="Rückgängig (Ctrl+Z)" aria-label="Rückgängig" style="opacity:0.4;cursor:not-allowed;" disabled>↩</button>
+    <button class="btn btn-ghost btn-icon" onclick="triggerImport()" title="JSON Resume importieren" aria-label="JSON Resume importieren">📥</button>
     <button class="btn btn-ghost btn-sm"   onclick="resetAll()" data-i18n="btnReset">Zurücksetzen</button>
-    <button class="btn btn-ghost btn-sm"   onclick="saveData()"          data-i18n="btnSave">💾</button>
+    <button class="btn btn-ghost btn-sm"   onclick="saveData()"          data-i18n="btnSave" aria-label="Speichern">💾</button>
     <span class="topbar-sep" aria-hidden="true"></span>
     <div class="pdf-download-group">
       <button class="btn btn-primary" onclick="runHealthCheck('design')" title="Nur die visuelle Design-Version, ohne ATS-Textanhang">🎨 Design-CV</button>
       <button class="btn btn-primary" onclick="runHealthCheck('ats')" title="Nur der maschinenlesbare ATS-Text, ohne Grafik">🎯 ATS-Text</button>
     </div>
-    <button class="btn btn-ghost" onclick="exportPDF()"         data-i18n="btnPrint">🖨</button>
+    <button class="btn btn-ghost" onclick="exportPDF()"         data-i18n="btnPrint" aria-label="Drucken / Als PDF exportieren">🖨</button>
   </div>
 </div>
 
@@ -165,7 +174,7 @@
       </div>
       <div id="photo-preview-section" style="display:none;">
         <div class="photo-preview-wrap">
-          <img id="photo-preview-img" class="photo-preview-img" src="" alt="">
+          <img id="photo-preview-img" class="photo-preview-img" src="" alt="Profilfoto-Vorschau">
           <div class="photo-preview-info">
             <div class="photo-preview-name" id="photo-preview-name" data-i18n="labelYourPhoto">Dein Foto</div>
             <div class="photo-preview-sub" data-i18n="photoShown">Wird im Lebenslauf angezeigt</div>
